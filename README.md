@@ -1,3 +1,6 @@
+# IPAM Graduate Summer School
 
-# IPAM Graduate Summer School: Deep Learning, Feature Learning
-## July 9 - 27, 2012
+On Deep Learning, Feature Learning
+July 9 - 27, 2012
+
+[More info here.](http://www.ipam.ucla.edu/programs/gss2012/) 

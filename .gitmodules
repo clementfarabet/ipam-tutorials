@@ -1,0 +1,3 @@
+[submodule "py_submodules/skdata"]
+	path = py_submodules/skdata
+	url = https://github.com/jaberg/skdata

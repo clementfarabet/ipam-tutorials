@@ -1,5 +1,6 @@
 import numpy as np
 from numpy import dot, exp, log, sqrt, tanh
+from numpy.random import rand
 
 
 """
@@ -8,6 +9,7 @@ Standard Semantics
 ==================
 x - observation matrix (#examples, #features)
 x_rec - the reconstruction of `x`
+w - the weight matrix (#features, #hidden), aka dictionary
 hid - the features / hidden representation corresponding to `x`.
 cost - the cost of each example in `x`
 
@@ -18,7 +20,7 @@ cost - the cost of each example in `x`
 #
 
 
-def logictic(x):
+def logistic(x):
     """Return logistic sigmoid of float or ndarray `x`"""
     return 1.0 / (1.0 + exp(-x))
 
@@ -43,7 +45,7 @@ def squared_error(x, x_rec):
 #
 
 
-# classic real-real autoencoder
+# real-real autoencoder
 def pca_autoencoder_real_x(x, w):
     hid = dot(x, w)
     x_rec = dot(hid, w.T)
@@ -51,8 +53,8 @@ def pca_autoencoder_real_x(x, w):
     return cost, hid
 
 
-# classic binary-binary autoencoder ("tied" weights)
-def logistic_autoencoder_binary_x(x, w, hidbias, visbias)
+# binary-binary autoencoder ("tied" weights)
+def logistic_autoencoder_binary_x(x, w, hidbias, visbias):
     hid = logistic(dot(x, w) + hidbias)
     # -- using w.T here is called using "tied weights"
     # -- using a second weight matrix here is called "untied weights"
@@ -61,8 +63,19 @@ def logistic_autoencoder_binary_x(x, w, hidbias, visbias)
     return cost, hid
 
 
-# classic binary-binary RBM, Contastive Divergence (CD-1)
-def rbm_binary_x(x, w, visbias, hidbias)
+def denoising_autoencoder_binary_x(x, w, hidbias, visbias, noise_level):
+    # -- corrupt the input by zero-ing out some values randomly
+    noisy_x = x * (rand(*x.shape) > noise_level)
+    hid = logistic(dot(noisy_x, w) + hidbias)
+    # -- using w.T here is called using "tied weights"
+    # -- using a second weight matrix here is called "untied weights"
+    x_rec = logistic(dot(hid, w.T) + visbias)
+    cost = cross_entropy(x, x_rec)
+    return cost, hid
+
+
+# binary-binary RBM, Contastive Divergence (CD-1)
+def rbm_binary_x(x, w, visbias, hidbias):
     hid = logistic(dot(x, w) + hidbias)
     hid_sample = hid > np.random.rand(*hid.shape)
 
@@ -80,7 +93,7 @@ def rbm_binary_x(x, w, visbias, hidbias)
     return cost, hid
 
 
-# classic real-discrete K-means
+# real-discrete K-means
 def k_means_real_x(x, w, hidbias, visbias):
     xw = dot(x, w) + hidbias
     # -- N.B. for so-called "soft" k-means convert xw into a smoother
@@ -91,7 +104,8 @@ def k_means_real_x(x, w, hidbias, visbias):
     return cost, hid
 
 
-# classic real-real Sparse Coding
+FISTA = NotImplementedError
+# real-real Sparse Coding
 def sparse_coding_real_x(x, w, sparse_coding_algo=FISTA):
     # -- several sparse coding algorithms have been proposed, but they all
     # give rise to a feature learning algorithm that looks like this:

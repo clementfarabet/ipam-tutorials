@@ -1,3 +1,6 @@
 [submodule "py_submodules/skdata"]
 	path = py_submodules/skdata
 	url = https://github.com/jaberg/skdata
+[submodule "py_submodules/DeepLearningTutorials"]
+	path = py_submodules/DeepLearningTutorials
+	url = git@github.com:lisa-lab/DeepLearningTutorials.git

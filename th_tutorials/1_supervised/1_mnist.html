@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="1138.47">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 18.0px Helvetica; color: #606060}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+    p.p3 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p4 {margin: 0.0px 0.0px 0.0px 0.0px; font: 16.0px Helvetica}
+    p.p5 {margin: 0.0px 0.0px 0.0px 0.0px; font: 16.0px Helvetica; min-height: 19.0px}
+    p.p6 {margin: 0.0px 0.0px 0.0px 0.0px; font: 11.0px Menlo; color: #ffffff; background-color: #444444}
+    li.li3 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    ol.ol1 {list-style-type: decimal}
+  </style>
+</head>
+<body>
+<p class="p1"><b>0. MNIST: recognizing handwritten digits</b></p>
+<p class="p2"><br></p>
+<p class="p3">This example demonstrates how to train different models on the MNIST<span class="Apple-converted-space">  </span>dataset, using multiple optimization techniques: SGD, ASGD, CG, L-BFGS.</p>
+<p class="p2"><br></p>
+<p class="p3">The example demonstrates a classical example of training well-known models: convolutional neural networks (CNNs, or ConvNets), multi-layer neural networks (MLPs), and simple logistic regression units, on a 10-class classification problem.<span class="Apple-converted-space"> </span></p>
+<p class="p2"><br></p>
+<p class="p3">The tutorial illustrates several points:</p>
+<p class="p2"><br></p>
+<ol class="ol1">
+  <li class="li3">description of the model</li>
+  <li class="li3">choice of a loss function (criterion) to minimize</li>
+  <li class="li3">creation of a dataset as a simple Lua table</li>
+  <li class="li3">description of training and test procedures</li>
+</ol>
+<p class="p2"><br></p>
+<p class="p3">Note: the example script is quite verbose, <b>on purpose</b>. Instead of relying on opaque classes, dataset creation, as well as the complete training loop are basically exposed right here. Although a bit challenging at first, it should help new users quickly get independent, and able to tweak the code for their own problems.</p>
+<p class="p2"><br></p>
+<p class="p4"><b>1. Description of the model</b></p>
+<p class="p2"><br></p>
+<p class="p3">In this example, we describe three models. To do so, we rely on the ‘nn’ package, which provides a set of basic building (<a href="http://cdn.slashgear.com/wp-content/uploads/2010/12/Terminator-LEGO-481x500.jpg">lego</a>) blocks of pre-defined backpropable transfer functions.</p>
+<p class="p2"><br></p>
+<p class="p3">The first step is to load the ‘nn’ library:</p>
+<p class="p5"><b></b><br></p>
+<p class="p6">t7&gt; require ‘nn’</p>
+<p class="p2"><br></p>
+<p class="p3">OK.</p>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Author" content="Clement Farabet">
+  <meta name="Copyright" content="Clement Farabet">
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="1138.47">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 18.0px Helvetica; color: #606060}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+    p.p3 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p4 {margin: 0.0px 0.0px 0.0px 0.0px; font: 16.0px Helvetica}
+    p.p5 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Helvetica; min-height: 17.0px}
+    p.p6 {margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px Helvetica}
+    p.p7 {margin: 0.0px 0.0px 0.0px 0.0px; font: 11.0px Menlo; color: #ffffff; background-color: #444444}
+    p.p8 {margin: 0.0px 0.0px 0.0px 0.0px; font: 11.0px Menlo}
+    p.p9 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Menlo; color: #ffffff; background-color: #444444}
+    p.p10 {margin: 0.0px 0.0px 0.0px 0.0px; font: 15.0px Helvetica}
+    p.p11 {margin: 0.0px 0.0px 0.0px 0.0px; font: 11.0px Menlo; min-height: 13.0px}
+  </style>
+</head>
+<body>
+<p class="p1"><b>0. Installing Torch7 &amp; extra packages</b></p>
+<p class="p2"><br></p>
+<p class="p3">Before starting with the tutorials in this repo, we need to install <a href="http://www.torch.ch/">Torch7</a>, as well as some extra (3rd-party) <a href="http://data.neuflow.org/lua/">packages</a>.</p>
+<p class="p2"><br></p>
+<p class="p3">This page summarizes key steps in deploying Torch7 and additional packages. Additional information is available on Torch7's main website, in particular, exhaustive instructions are available <a href="http://www.torch.ch/manual/install/index">here</a>.</p>
+<p class="p2"><br></p>
+<p class="p4"><b>1. Dependencies</b></p>
+<p class="p5"><b></b><br></p>
+<p class="p6"><b>a/ On Mac OS X:</b></p>
+<p class="p2"><br></p>
+<p class="p3">First install Xcode, and the command line tools (in the latest versions, these are not installed by default, you have to find them in Xcode-&gt;Preferences...-&gt;Downloads: Command Line Tools). This will give you a basic gcc and g++.</p>
+<p class="p2"><br></p>
+<p class="p3">Then to install Torch's dependencies, using a package manager like Homebrew really simplifies things (get it here: Homebrew).</p>
+<p class="p2"><br></p>
+<p class="p3">Using Homebrew:</p>
+<p class="p2"><br></p>
+<p class="p7">$ brew install git readline cmake gnuplot wget qt opencv ffmpeg boost</p>
+<p class="p2"><br></p>
+<p class="p3">You will also need to install GCC &gt;= 4.6 to get proper multithreading support for Torch7 (a knonw MacOS issue); the easiest way to do that is to install GFortran for its binaries: GFortran (a dmg package, installs in seconds); then export CC and CXX to point to the new GCC, before building Torch7:<span class="Apple-converted-space"> </span></p>
+<p class="p2"><br></p>
+<p class="p7">$ export CC=/usr/bin/gfortran/bin/gcc<span class="Apple-converted-space"> </span></p>
+<p class="p7">$ export CXX=/usr/bin/gfortran/bin/g++</p>
+<p class="p2"><br></p>
+<p class="p6"><b>b/ On Ubuntu:</b></p>
+<p class="p2"><br></p>
+<p class="p3">On Ubuntu, things are much more straightforward, using Aptitude:<span class="Apple-converted-space"> </span></p>
+<p class="p2"><br></p>
+<p class="p7">$ sudo apt-get install gcc g++<span class="Apple-converted-space"> </span></p>
+<p class="p7">$ sudo apt-get install cmake libreadline5-dev git-core gnuplot<span class="Apple-converted-space"> </span></p>
+<p class="p7">$ sudo apt-get install libqt4-core libqt4-gui libqt4-dev<span class="Apple-converted-space"> </span></p>
+<p class="p7">$ sudo apt-get install ffmpeg opencv-dev boost-dev</p>
+<p class="p2"><br></p>
+<p class="p3">These names change from one distribution to the other, please check look for the equivalent name in your distribution.</p>
+<p class="p2"><br></p>
+<p class="p4"><b>2. Torch7</b></p>
+<p class="p2"><br></p>
+<p class="p3">You should now be ready to install Torch:<span class="Apple-converted-space"> </span></p>
+<p class="p2"><br></p>
+<p class="p7">$ git clone https://github.com/andresy/torch<span class="Apple-converted-space"> </span></p>
+<p class="p7">$ cd torch<span class="Apple-converted-space"> </span></p>
+<p class="p7">$ mkdir build; cd build<span class="Apple-converted-space"> </span></p>
+<p class="p7">$ cmake ..</p>
+<p class="p2"><br></p>
+<p class="p3">At this stage make sure that the cmake logs correctly activated openmp, and is using the correct versions of CC and CXX (on Mac OS X). If you want to use a particular BLAS library (OpenBLAS is great), also check that it was properly found. You can easily modify the cmake variables by using:<span class="Apple-converted-space"> </span></p>
+<p class="p2"><br></p>
+<p class="p8">$ ccmake<span class="Apple-converted-space"> </span></p>
+<p class="p2"><br></p>
+<p class="p3">which will fire up a terminal-based editor.</p>
+<p class="p2"><br></p>
+<p class="p3">Now that you're happy with cmake's config, build and install:<span class="Apple-converted-space"> </span></p>
+<p class="p2"><br></p>
+<p class="p9">$ make<span class="Apple-converted-space"> </span></p>
+<p class="p9">$ make install</p>
+<p class="p2"><br></p>
+<p class="p10"><b>3. 3rd-party packages</b></p>
+<p class="p2"><br></p>
+<p class="p3">Torch7 comes with its own package manager (which works a lot like Aptitude or Homebrew), to simplify 3rd-party extensions. CogBits' software relies on multiple packages, which can be installed like this:<span class="Apple-converted-space"> </span></p>
+<p class="p2"><br></p>
+<p class="p7">$ torch-pkg install imgraph videograph image opencv camera nnx ffmpeg inline</p>
+<p class="p2"><br></p>
+<p class="p3">An exhaustive list of the packages we support can be found here.</p>
+<p class="p2"><br></p>
+<p class="p3">Note1: you might need to be root to install these, if Torch was also installed in a root directory)</p>
+<p class="p2"><br></p>
+<p class="p3">Note2: You might want to install these packages one by one and make sure that all of them get successfully built, you can also check that they are properly installed by running Torch, and loading them:<span class="Apple-converted-space"> </span></p>
+<p class="p2"><br></p>
+<p class="p7">$ torch</p>
+<p class="p7">t7&gt; require 'imgraph'<span class="Apple-converted-space"> </span></p>
+<p class="p7">t7&gt;<span class="Apple-converted-space"> </span></p>
+<p class="p3">(if no error, the package is installed!)</p>
+<p class="p2"><br></p>
+<p class="p3">A complete list of packages can be obtained by doing:</p>
+<p class="p2"><br></p>
+<p class="p7">$ torch-pkg list</p>
+<p class="p11"><br></p>
+<p class="p8">or by just checking this <a href="http://www.torch.ch/manual/install/index">page</a>.</p>
+<p class="p2"><br></p>
+<p class="p10"><b>4. Demos/Tutorials</b></p>
+<p class="p2"><br></p>
+<p class="p7">$ git clone https://github.com/clementfarabet/torch7-demos<span class="Apple-converted-space"> </span></p>
+<p class="p7">$ cd torch7-demos<span class="Apple-converted-space"> </span></p>
+<p class="p2"><br></p>
+<p class="p3">Once you have this repo, you can try a couple of (open-source) demos, just to make sure everything works.</p>
+<p class="p2"><br></p>
+<p class="p3">You’re now ready to get started with code!</p>
+</body>
+</html>

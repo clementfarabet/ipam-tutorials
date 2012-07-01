@@ -1,0 +1,94 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Author" content="Clement Farabet">
+  <meta name="Copyright" content="Clement Farabet">
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="1138.47">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 18.0px Helvetica; color: #606060}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+    p.p3 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p4 {margin: 0.0px 0.0px 0.0px 0.0px; font: 16.0px Helvetica}
+    p.p5 {margin: 0.0px 0.0px 0.0px 0.0px; font: 11.0px Menlo; color: #ffffff; background-color: #444444}
+    p.p6 {margin: 0.0px 0.0px 0.0px 0.0px; font: 11.0px Menlo; color: #ffffff; background-color: #444444; min-height: 13.0px}
+  </style>
+</head>
+<body>
+<p class="p1"><b>1. Basic Torch</b></p>
+<p class="p2"><br></p>
+<p class="p3">Now that you have some basic knowledge about Lua, and how to run code and files, let’s dive into Torch’s data types and extensions.</p>
+<p class="p2"><br></p>
+<p class="p3">Torch is a library that extends Lua’s capabilities by providing a set of very efficient numeric routines, which are especially tailored for (online) marching learning and all the applications that are related (computer vision, speech, natural language processing, …).</p>
+<p class="p2"><br></p>
+<p class="p4"><b>1. Getting basic help</b></p>
+<p class="p2"><br></p>
+<p class="p3">Remember to use TAB-completion to quickly explore and find what you want:</p>
+<p class="p2"><br></p>
+<p class="p5">t7&gt; torch. + TAB</p>
+<p class="p5">torch.ByteTensor.<span class="Apple-converted-space">            </span>torch.include(</p>
+<p class="p5">torch.CharStorage. <span class="Apple-converted-space">          </span>torch.initialSeed(</p>
+<p class="p5">torch.CharTensor.<span class="Apple-converted-space">            </span>torch.inverse(</p>
+<p class="p2"><br></p>
+<p class="p3">Also, the help() function is defined on lots of symbols, and should also help you find documentation on the APIs:</p>
+<p class="p2"><br></p>
+<p class="p5">t7&gt; help(torch.randn)</p>
+<p class="p6"><br></p>
+<p class="p5">+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</p>
+<p class="p5">[res] torch.randn( [res,] m [, n, k, ...])<span class="Apple-converted-space">       </span></p>
+<p class="p5"><span class="Apple-converted-space"> </span>y=torch.randn(n) returns a one-dimensional tensor of size n filled<span class="Apple-converted-space"> </span></p>
+<p class="p5">with random numbers from a normal distribution with mean zero and variance<span class="Apple-converted-space"> </span></p>
+<p class="p5">one.</p>
+<p class="p5"><span class="Apple-converted-space"> </span>y=torch.randn(m,n) returns a mxn tensor of random numbers from a normal<span class="Apple-converted-space"> </span></p>
+<p class="p5">distribution with mean zero and variance one.</p>
+<p class="p5">+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</p>
+<p class="p2"><br></p>
+<p class="p4"><b>2. torch.Tensor &amp; torch.Storage</b></p>
+<p class="p2"><br></p>
+<p class="p3">Torch is a numeric framework that extends Lua with a very useful data type for numeric computations: the N-dimensional array. In Torch, this array is called a Tensor.</p>
+<p class="p2"><br></p>
+<p class="p3">The important thing about Tensors is the fact that they are all built around another basic torch type: the Storage. A Storage represents a linear piece of memory. Tensors are simple views of Storages, which allows powerful data representations to be derived, and yet still minimizing the amount of copies that are required during a program execution.</p>
+<p class="p2"><br></p>
+<p class="p5">t7&gt; a = torch.Tensor(3,3)</p>
+<p class="p5">t7&gt; a:fill(0.5)</p>
+<p class="p5">t7&gt; =a</p>
+<p class="p5"><span class="Apple-converted-space"> </span>0.5000<span class="Apple-converted-space">  </span>0.5000<span class="Apple-converted-space">  </span>0.5000</p>
+<p class="p5"><span class="Apple-converted-space"> </span>0.5000<span class="Apple-converted-space">  </span>0.5000<span class="Apple-converted-space">  </span>0.5000</p>
+<p class="p5"><span class="Apple-converted-space"> </span>0.5000<span class="Apple-converted-space">  </span>0.5000<span class="Apple-converted-space">  </span>0.5000</p>
+<p class="p5">[torch.DoubleTensor of dimension 3x3]</p>
+<p class="p6"><br></p>
+<p class="p5">t7&gt; a = torch.range(1,5)</p>
+<p class="p5">t7&gt; =a</p>
+<p class="p5"><span class="Apple-converted-space"> </span>1</p>
+<p class="p5"><span class="Apple-converted-space"> </span>2</p>
+<p class="p5"><span class="Apple-converted-space"> </span>3</p>
+<p class="p5"><span class="Apple-converted-space"> </span>4</p>
+<p class="p5"><span class="Apple-converted-space"> </span>5</p>
+<p class="p5">[torch.DoubleTensor of dimension 5]</p>
+<p class="p6"><br></p>
+<p class="p5">t7&gt; b = torch.Tensor(a):resize(9)</p>
+<p class="p5">t7&gt; =b</p>
+<p class="p5"><span class="Apple-converted-space"> </span>0.5000</p>
+<p class="p5"><span class="Apple-converted-space"> </span>0.5000</p>
+<p class="p5"><span class="Apple-converted-space"> </span>0.5000</p>
+<p class="p5"><span class="Apple-converted-space"> </span>0.5000</p>
+<p class="p5"><span class="Apple-converted-space"> </span>0.5000</p>
+<p class="p5"><span class="Apple-converted-space"> </span>0.5000</p>
+<p class="p5"><span class="Apple-converted-space"> </span>0.5000</p>
+<p class="p5"><span class="Apple-converted-space"> </span>0.5000</p>
+<p class="p5"><span class="Apple-converted-space"> </span>0.5000</p>
+<p class="p5">[torch.DoubleTensor of dimension 9]</p>
+<p class="p6"><br></p>
+<p class="p5">t7&gt; b[1] = 10</p>
+<p class="p5">t7&gt; =a</p>
+<p class="p5"><span class="Apple-converted-space"> </span>10.0000 <span class="Apple-converted-space">  </span>0.5000 <span class="Apple-converted-space">  </span>0.5000</p>
+<p class="p5"><span class="Apple-converted-space">  </span>0.5000 <span class="Apple-converted-space">  </span>0.5000 <span class="Apple-converted-space">  </span>0.5000</p>
+<p class="p5"><span class="Apple-converted-space">  </span>0.5000 <span class="Apple-converted-space">  </span>0.5000 <span class="Apple-converted-space">  </span>0.5000</p>
+<p class="p5">[torch.DoubleTensor of dimension 3x3]</p>
+<p class="p2"><br></p>
+<p class="p3">The above code demonstrates a couple of constructors, and how we can create two Tensors that share a common underlying Storage.</p>
+</body>
+</html>

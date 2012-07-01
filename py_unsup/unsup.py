@@ -31,7 +31,7 @@ def cross_entropy(x, x_rec_p):
     x_rec_p is the Bernoulli parameter of the model's reconstruction
     """
     # -- N.B. this is numerically bad, we're counting on Theano to fix up
-    return (x * log(x_rec_p) + (1 - x) * log(1 - x_rec_p)).sum(axis=1)
+    return -(x * log(x_rec_p) + (1 - x) * log(1 - x_rec_p)).sum(axis=1)
 
 
 def squared_error(x, x_rec):

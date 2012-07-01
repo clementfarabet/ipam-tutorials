@@ -8,11 +8,13 @@
 
 #import skdata.CIFAR10
 import sys
+import logging
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from skdata.mnist.views import OfficialVectorClassification
+import autodiff
 
 from utils import tile_raster_images
 
@@ -27,13 +29,12 @@ def show_filters(x, img_shape, tile_shape):
 
 def main():
     n_hidden = 16 * 16      # -- QQ feel free to change this
-    dtype = 'float32'       # -- QQ compare float64?
+    dtype = 'float64'       # -- QQ compare float64?
 
     data_view = OfficialVectorClassification(x_dtype=dtype)
 
-    x = data_view.train.x[:1000]
-    n_examples = x.shape[0]
-    n_visible = x.shape[1]
+    x = data_view.train.x[:10000]
+    n_examples, n_visible = x.shape
 
     # -- uncomment this line to see sample images from the data set
     # show_filters(x[:100], (28, 28), (10, 10))
@@ -52,13 +53,49 @@ def main():
     # -- uncomment this line to visualize the initial filter bank
     # show_filters(w.T, (28, 28), (16, 16))
 
-    def train_criterion(w, hidbias, visbias):
-        cost, hid = unsup.logistic_autoencoder_binary_x(x, w, hidbias, visbias)
-        return cost.mean()
-    print train_criterion(w, hidbias, visbias)
+    if 0: # -- ONLINE TRAINING
+
+        # -- sgd will loop over x_blocks' leading dimension:
+        #                     ||
+        #                     \/
+        x_stream = x.reshape((10000, 1, x.shape[1]))
+
+        def online_train_criterion(w, hidbias, visbias, x_i):
+            cost, hid = unsup.logistic_autoencoder_binary_x(x_i, w, hidbias, visbias)
+            return cost.mean()
+
+        w, hidbias, visbias = autodiff.fmin_sgd(
+                online_train_criterion,
+                args=(w, hidbias, visbias),
+                stream=x_stream,
+                #stream_elements_have_same_shape=True, # XXX Implement this
+                stepsize=0.01,
+                )
+
+        # -- uncomment this line to visualize the initial filter bank
+        show_filters(w.T, (28, 28), (16, 16))
+
+    if 1: # -- BATCH TRAINING
+        def batch_train_criterion(w, hidbias, visbias):
+            cost, hid = unsup.logistic_autoencoder_binary_x(x, w, hidbias, visbias)
+            return cost.mean()
+
+        w, hidbias, visbias = autodiff.fmin_l_bfgs_b(
+                batch_train_criterion,
+                args=(w, hidbias, visbias),
+                # -- scipy.fmin_l_bfgs_b kwargs follow
+                maxfun=10,
+                iprint=1,
+                )
+
+        # XXX: WHY DOES L_BFGS SCREW UP THE FILTERS SO MUCH?!??
+
+        # -- uncomment this line to visualize the initial filter bank
+        show_filters(w.T, (28, 28), (16, 16))
 
 
 # -- this is the standard way to make a Python file both importable and
 # executable
 if __name__ == '__main__':
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     sys.exit(main())

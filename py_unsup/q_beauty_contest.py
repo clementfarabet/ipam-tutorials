@@ -13,7 +13,7 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from skdata.mnist.views import OfficialVectorClassification
+from skdata import mnist
 import autodiff
 
 from utils import tile_raster_images
@@ -28,70 +28,83 @@ def show_filters(x, img_shape, tile_shape):
 
 
 def main():
-    n_hidden = 16 * 16      # -- QQ feel free to change this
-    dtype = 'float64'       # -- QQ compare float64?
+    n_hidden1 = n_hidden2 = 16
+    n_hidden = n_hidden1 * n_hidden2   # -- QQ feel free to change this
+    dtype = 'float64'                  # -- QQ compare float32
+    rng = np.random.RandomState(123)
+    n_examples = 10000
 
-    data_view = OfficialVectorClassification(x_dtype=dtype)
+    data_view = mnist.views.OfficialVectorClassification(x_dtype=dtype)
 
-    x = data_view.train.x[:10000]
+    x = data_view.train.x[:n_examples]
     n_examples, n_visible = x.shape
+    x_img_res = 28, 28
 
     # -- uncomment this line to see sample images from the data set
-    # show_filters(x[:100], (28, 28), (10, 10))
+    # show_filters(x[:100], x_img_res, (10, 10))
 
     # -- allocate and initialize a model (w, visbias, hidbias)
     #    QQ - most/all of our filter-learning algorithms are sensitive to
     #         initial conditions.  How does the scale and range of the initial
     #         values affect the trajectory of learning?
-    w = np.random.uniform(
+    w = rng.uniform(
             low=-4 * np.sqrt(6. / (n_hidden + n_visible)),
             high=4 * np.sqrt(6. / (n_hidden + n_visible)),
             size=(n_visible, n_hidden)).astype(dtype)
     visbias = np.zeros(n_visible).astype(dtype)
     hidbias = np.zeros(n_hidden).astype(dtype)
 
-    # -- uncomment this line to visualize the initial filter bank
-    # show_filters(w.T, (28, 28), (16, 16))
+    # -- uncomment this line to visualize the initial filter bank:
+    # show_filters(w.T, x_img_res, (n_hidden1, n_hidden2))
 
-    if 0: # -- ONLINE TRAINING
+    online_batch_size = 1   # -- QQ: play with this guy, what happens?
 
-        # -- sgd will loop over x_blocks' leading dimension:
-        #                     ||
-        #                     \/
-        x_stream = x.reshape((10000, 1, x.shape[1]))
+    x_stream = x.reshape((
+        n_examples / online_batch_size,  # -- sgd will loop over this axis
+        online_batch_size,
+        x.shape[1]))
 
-        def online_train_criterion(w, hidbias, visbias, x_i):
-            cost, hid = unsup.logistic_autoencoder_binary_x(x_i, w, hidbias, visbias)
-            return cost.mean()
+    # -- this inline function defines our feature-learning loss function for
+    #    autodiff.
+    def train_criterion(w, hidbias, visbias, x_i=x):
+        # optional x_i parameter is used by the fmin_sgd's `stream` iterator
+        # but not used by fmin_l_bfgs_b, so we make it default to the value
+        # needed by fmin_l_bfgs_b.
 
-        w, hidbias, visbias = autodiff.fmin_sgd(
-                online_train_criterion,
-                args=(w, hidbias, visbias),
-                stream=x_stream,
-                #stream_elements_have_same_shape=True, # XXX Implement this
-                stepsize=0.01,
-                )
+        # -- QQ: try swapping in different feature-learning criteria here
+        #        Can you interpret why the filters come out different or
+        #        similar?
+        cost, hid = unsup.logistic_autoencoder_binary_x(x_i, w, hidbias, visbias)
 
-        # -- uncomment this line to visualize the initial filter bank
-        show_filters(w.T, (28, 28), (16, 16))
+        # -- QQ: try different l1 and l2 penalties, what do they do? What
+        # happens to the look of the filters when you mix them?
+        l1_cost = abs(w).sum() * 0.001
+        l2_cost = (w ** 2).sum() * 0.0
+        return cost.mean() + l1_cost + l2_cost
 
-    if 1: # -- BATCH TRAINING
-        def batch_train_criterion(w, hidbias, visbias):
-            cost, hid = unsup.logistic_autoencoder_binary_x(x, w, hidbias, visbias)
-            return cost.mean()
 
-        w, hidbias, visbias = autodiff.fmin_l_bfgs_b(
-                batch_train_criterion,
-                args=(w, hidbias, visbias),
-                # -- scipy.fmin_l_bfgs_b kwargs follow
-                maxfun=10,
-                iprint=1,
-                )
+    # -- ONLINE TRAINING
+    w, hidbias, visbias = autodiff.fmin_sgd(train_criterion,
+            args=(w, hidbias, visbias),
+            stream=x_stream,  # -- fmin_sgd will loop through this once
+            stepsize=0.01,
+            )
 
-        # XXX: WHY DOES L_BFGS SCREW UP THE FILTERS SO MUCH?!??
+    # -- uncomment this line to visualize the post-online filter bank
+    show_filters(w.T, x_img_res, (n_hidden1, n_hidden2))
 
-        # -- uncomment this line to visualize the initial filter bank
-        show_filters(w.T, (28, 28), (16, 16))
+
+    # -- BATCH TRAINING
+    w, hidbias, visbias = autodiff.fmin_l_bfgs_b(train_criterion,
+            args=(w, hidbias, visbias),
+            # -- scipy.fmin_l_bfgs_b kwargs follow
+            maxfun=100,   # -- how many iterations of BFGS to do
+            iprint=1,     # -- 1 for verbose, 0 for normal, -1 for quiet
+            m=20,         # -- how well to approximate the Hessian
+            )
+
+    # -- uncomment this line to visualize the post-batch filter bank
+    show_filters(w.T, x_img_res, (n_hidden1, n_hidden2))
 
 
 # -- this is the standard way to make a Python file both importable and

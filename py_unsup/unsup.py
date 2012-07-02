@@ -46,10 +46,10 @@ def squared_error(x, x_rec):
 
 
 # real-real autoencoder
-def pca_autoencoder_real_x(x, w):
-    hid = dot(x, w)
+def pca_autoencoder_real_x(x, w, visbias):
+    hid = dot(x - visbias, w)
     x_rec = dot(hid, w.T)
-    cost = squared_error_cost(x, x_rec)
+    cost = squared_error(x - visbias, x_rec)
     return cost, hid
 
 

@@ -53,7 +53,7 @@ def pca_autoencoder_real_x(x, w, visbias):
     return cost, hid
 
 
-# binary-binary autoencoder ("tied" weights)
+# binary-binary autoencoder (with "tied" weights)
 def logistic_autoencoder_binary_x(x, w, hidbias, visbias):
     hid = logistic(dot(x, w) + hidbias)
     # -- using w.T here is called using "tied weights"
@@ -63,6 +63,7 @@ def logistic_autoencoder_binary_x(x, w, hidbias, visbias):
     return cost, hid
 
 
+# De-Noising binary-binary autoencoder (again, with "tied" weights)
 def denoising_autoencoder_binary_x(x, w, hidbias, visbias, noise_level):
     # -- corrupt the input by zero-ing out some values randomly
     noisy_x = x * (rand(*x.shape) > noise_level)

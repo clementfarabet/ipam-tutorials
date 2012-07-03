@@ -29,12 +29,17 @@ def show_filters(x, img_shape, tile_shape):
 
 
 def main():
+    # -- QQ feel free to change the number of hidden units to learn different
+    # feature representations.
     n_hidden1 = n_hidden2 = 25
-    n_hidden = n_hidden1 * n_hidden2   # -- QQ feel free to change this
-    dtype = 'float32'                  # -- QQ compare float32
-    # -- XXX N.B. that you *need* float32 to run these optimizations on a GPU
+    n_hidden = n_hidden1 * n_hidden2
+
+    # -- QQ compare float32 with float64
+    # -- N.B. that you *need* float32 to run these optimizations on a GPU
+    dtype = 'float32'
+
     rng = np.random.RandomState(123)
-    n_examples = 50000
+    n_examples = 10000
 
     data_view = mnist.views.OfficialVectorClassification(x_dtype=dtype)
 
@@ -59,7 +64,7 @@ def main():
     # -- uncomment this line to visualize the initial filter bank:
     # show_filters(w.T, x_img_res, (n_hidden1, n_hidden2))
 
-    online_batch_size = 1   # -- QQ: play with this guy, what happens?
+    online_batch_size = 1   # -- QQ: what happens when this is 2? 5? 10? 1000?
 
     x_stream = x.reshape((
         n_examples / online_batch_size,  # -- sgd will loop over this axis
@@ -81,11 +86,11 @@ def main():
         #cost, hid = unsup.logistic_autoencoder_binary_x(x_i, w, hidbias, visbias)
 
         # -- DENOISING AUTO-ENCODER
-        #cost, hid = unsup.denoising_autoencoder_binary_x(x_i, w, hidbias,
-                #visbias, noise_level=0.3)
+        cost, hid = unsup.denoising_autoencoder_binary_x(x_i, w, hidbias,
+                visbias, noise_level=0.3)
 
         # -- RBM
-        cost, hid = unsup.rbm_binary_x(x_i, w, hidbias, visbias)
+        # cost, hid = unsup.rbm_binary_x(x_i, w, hidbias, visbias)
 
         # -- QQ: try different l1 and l2 penalties, what do they do? What
         # happens to the look of the filters when you mix them?
@@ -95,29 +100,20 @@ def main():
 
 
     # -- ONLINE TRAINING
-    for epoch in range(10):
-        sgd = autodiff.FMinSGD(train_criterion,
+    for epoch in range(0):
+        t0 = time.time()
+        w, hidbias, visbias = autodiff.fmin_sgd(train_criterion,
                 args=(w, hidbias, visbias),
                 stream=x_stream,  # -- fmin_sgd will loop through this once
-                stepsize=0.01,   # -- 0.003 was good for autoencoder
-                #print_interval=1000,
+                stepsize=0.005,   # -- QQ: you should always tune this
+                print_interval=1000,
                 )
-        t0 = time.time()
-        #import theano
-        #theano.printing.debugprint(sgd.update_fn)
-        for _sgd in sgd:
-            if 0 == sgd.ii % 10000:
-                print _sgd, sgd.ii, (time.time() - t0)
-                _w, _h, _v = sgd.current_args
-                print _w.max(), _w.min(), _h.max(), _h.min(), _v.max(), _v.min()
-            if not np.isfinite(_sgd):
-                raise ValueError(_sgd)
 
         # -- uncomment this line to visualize the post-online filter bank
-        show_filters(_w.T, x_img_res, (n_hidden1, n_hidden2))
+        print 'Online training epoch %i took %f seconds' % (
+                epoch, time.time() - t0)
+        show_filters(w.T, x_img_res, (n_hidden1, n_hidden2))
 
-
-    return
     # -- BATCH TRAINING
     w, hidbias, visbias = autodiff.fmin_l_bfgs_b(train_criterion,
             args=(w, hidbias, visbias),

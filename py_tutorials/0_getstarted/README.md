@@ -76,5 +76,5 @@ get in the habit of *seeding* your generators right off the bat like this:
     plt.show()
 
 
-This example is already saved in the accompanying [hello_random.py](./hello_random.py), so you can just type `python hello_random.py` in the current directory to try it out.
+This example is already saved in the accompanying [hello_random.py](./0_getstarted/hello_random.py), so you can just type `python hello_random.py` in the current directory to try it out.
 

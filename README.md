@@ -14,6 +14,8 @@ July 9 - 27, 2012
 * 10 mins crash course in Python, numpy, Theano
 
 * 10 mins crash course in Lua, Torch7
+  (will review very basic Lua and Torch concepts, to get people started)
+  (will also do some basic review of available ML packages, graphical models, and so on)
 
 * 15 min Getting people into groups and setting them up to run the sample code
   on laptop or EC2. Once they get it running, they can go for lunch or stick
@@ -22,13 +24,20 @@ July 9 - 27, 2012
 
 ## Day 2: Supervised Learning
 
-* Train a ConvNet on google street signs
+* Train a ConvNet on multiple datasets
+
+  * Q0. Loading/processing datasets is trivial. We have MNIST,
+        CIFAR, and Google House Numbers available. The latter
+        is the most exciting, because very few results are available
+        at this time (and is more computer visionny that MNIST)
 
   * Q1. SGD preconditioning (number of updates, batchsize)
 
   * Q2. L-BFGS / ASGD optimization (number of updates, batchsize)
+        Possibly show that SGD (or ASGD) is still the best method to
+        obtain most general results when doing purely supervised learning
 
-  * Debugging techniques ?
+  * Debugging techniques?
 
 
 ## Day 3: Greedy Feature Learning

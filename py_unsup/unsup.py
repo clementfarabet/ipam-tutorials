@@ -75,21 +75,22 @@ def denoising_autoencoder_binary_x(x, w, hidbias, visbias, noise_level):
 
 
 # binary-binary RBM, Contastive Divergence (CD-1)
-def rbm_binary_x(x, w, visbias, hidbias):
+def rbm_binary_x(x, w, hidbias, visbias):
     hid = logistic(dot(x, w) + hidbias)
-    hid_sample = hid > np.random.rand(*hid.shape)
+    hid_sample = (hid > rand(*hid.shape)).astype(x.dtype)
 
     # -- N.B. model is not actually trained to reconstruct x
     x_rec = logistic(dot(hid_sample, w.T) + visbias)
-    x_rec_sample = x_rec > np.random.rand(*x_rec.shape)
+    x_rec_sample = (x_rec > rand(*x_rec.shape)).astype(x.dtype)
 
     # "negative phase" hidden unit expectation
     hid_rec = logistic(dot(x_rec_sample, w) + hidbias)
 
-    def free_energy(x, h):
-        return -log(h).sum(axis=1) - dot(x, visbias)
+    def free_energy(xx):
+        xw_b = dot(xx, w) + hidbias
+        return -log(1 + exp(xw_b)).sum(axis=1) - dot(xx, visbias)
 
-    cost = free_energy(x, hid) - free_energy(x_rec, hid_rec)
+    cost = free_energy(x) - free_energy(x_rec_sample)
     return cost, hid
 
 

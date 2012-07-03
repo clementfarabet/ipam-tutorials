@@ -7,8 +7,9 @@
 
 
 #import skdata.CIFAR10
-import sys
 import logging
+import sys
+import time
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -28,11 +29,12 @@ def show_filters(x, img_shape, tile_shape):
 
 
 def main():
-    n_hidden1 = n_hidden2 = 16
+    n_hidden1 = n_hidden2 = 25
     n_hidden = n_hidden1 * n_hidden2   # -- QQ feel free to change this
-    dtype = 'float64'                  # -- QQ compare float32
+    dtype = 'float32'                  # -- QQ compare float32
+    # -- XXX N.B. that you *need* float32 to run these optimizations on a GPU
     rng = np.random.RandomState(123)
-    n_examples = 10000
+    n_examples = 50000
 
     data_view = mnist.views.OfficialVectorClassification(x_dtype=dtype)
 
@@ -74,26 +76,48 @@ def main():
         # -- QQ: try swapping in different feature-learning criteria here
         #        Can you interpret why the filters come out different or
         #        similar?
-        cost, hid = unsup.logistic_autoencoder_binary_x(x_i, w, hidbias, visbias)
+
+        # -- AUTO-ENCODER
+        #cost, hid = unsup.logistic_autoencoder_binary_x(x_i, w, hidbias, visbias)
+
+        # -- DENOISING AUTO-ENCODER
+        #cost, hid = unsup.denoising_autoencoder_binary_x(x_i, w, hidbias,
+                #visbias, noise_level=0.3)
+
+        # -- RBM
+        cost, hid = unsup.rbm_binary_x(x_i, w, hidbias, visbias)
 
         # -- QQ: try different l1 and l2 penalties, what do they do? What
         # happens to the look of the filters when you mix them?
-        l1_cost = abs(w).sum() * 0.001
+        l1_cost = abs(w).sum() * 0.0
         l2_cost = (w ** 2).sum() * 0.0
         return cost.mean() + l1_cost + l2_cost
 
 
     # -- ONLINE TRAINING
-    w, hidbias, visbias = autodiff.fmin_sgd(train_criterion,
-            args=(w, hidbias, visbias),
-            stream=x_stream,  # -- fmin_sgd will loop through this once
-            stepsize=0.01,
-            )
+    for epoch in range(10):
+        sgd = autodiff.FMinSGD(train_criterion,
+                args=(w, hidbias, visbias),
+                stream=x_stream,  # -- fmin_sgd will loop through this once
+                stepsize=0.01,   # -- 0.003 was good for autoencoder
+                #print_interval=1000,
+                )
+        t0 = time.time()
+        #import theano
+        #theano.printing.debugprint(sgd.update_fn)
+        for _sgd in sgd:
+            if 0 == sgd.ii % 10000:
+                print _sgd, sgd.ii, (time.time() - t0)
+                _w, _h, _v = sgd.current_args
+                print _w.max(), _w.min(), _h.max(), _h.min(), _v.max(), _v.min()
+            if not np.isfinite(_sgd):
+                raise ValueError(_sgd)
 
-    # -- uncomment this line to visualize the post-online filter bank
-    show_filters(w.T, x_img_res, (n_hidden1, n_hidden2))
+        # -- uncomment this line to visualize the post-online filter bank
+        show_filters(_w.T, x_img_res, (n_hidden1, n_hidden2))
 
 
+    return
     # -- BATCH TRAINING
     w, hidbias, visbias = autodiff.fmin_l_bfgs_b(train_criterion,
             args=(w, hidbias, visbias),

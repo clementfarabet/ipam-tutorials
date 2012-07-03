@@ -100,7 +100,7 @@ def main():
 
 
     # -- ONLINE TRAINING
-    for epoch in range(0):
+    for epoch in range(3):
         t0 = time.time()
         w, hidbias, visbias = autodiff.fmin_sgd(train_criterion,
                 args=(w, hidbias, visbias),

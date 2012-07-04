@@ -4,20 +4,157 @@ Script that demonstrates multiple feature-learning algorithms
 The script lacks a command-line interface, just modify the values at the top of the main()
 function in-place.
 
+Standard Semantics
+==================
+x - observation matrix (#examples, #features)
+x_rec - the reconstruction of `x`
+w - the weight matrix (#features, #hidden), aka dictionary
+hid - the features / hidden representation corresponding to `x`.
+cost - the cost of each example in `x`
+
 """
 
+from functools import partial
 import logging
 import sys
 import time
 
 import numpy as np
+from numpy import dot, exp, log, newaxis, sqrt, tanh
+from numpy.random import rand
 
 from skdata import mnist, cifar10, streetsigns
 import autodiff
 
 from utils import show_filters
-import unsup
 
+
+#
+# SECTION: Helper functions
+#
+
+def euclidean_distances2(X, Y):
+    """Return all-pairs squared distances between rows of X and Y
+    """
+    # N.B. sklearn.metrics.pairwise.euclidean_distances
+    # offers a more robust version of this routine,
+    # but which does things that autodiff currently does not support.
+    XX = np.sum(X * X, axis=1)[:, newaxis]
+    YY = np.sum(Y * Y, axis=1)[newaxis, :]
+    distances = XX - 2 * dot(X, Y.T) + YY
+    np.maximum(distances, 0, distances)
+    return distances
+
+
+def cross_entropy(x, x_rec_p):
+    """Return the independent Bernoulli cross-entropy cost
+
+    x_rec_p is the Bernoulli parameter of the model's reconstruction
+    """
+    # -- N.B. this is numerically bad, we're counting on Theano to fix up
+    return -(x * log(x_rec_p) + (1 - x) * log(1 - x_rec_p)).sum(axis=1)
+
+
+def logistic(x):
+    """Return logistic sigmoid of float or ndarray `x`"""
+    return 1.0 / (1.0 + exp(-x))
+
+
+def softmax(x):
+    """Calculate the softmax of each row in x"""
+    x2 = x - x.max(axis=1)[:, newaxis]
+    ex = exp(x2)
+    return ex / ex.sum(axis=1)[:, newaxis]
+
+
+def squared_error(x, x_rec):
+    """Return the mean squared error of approximating `x` with `x_rec`"""
+    return ((x - x_rec) ** 2).sum(axis=1)
+
+
+#
+# SECTION: Feature-learning criteria
+#
+
+
+# real-real autoencoder
+def pca_autoencoder_real_x(x, w, hidbias, visbias):
+    hid = dot(x - visbias, w)
+    x_rec = dot(hid, w.T)
+    cost = squared_error(x - visbias, x_rec)
+    return cost, hid
+
+
+# binary-binary autoencoder (with "tied" weights)
+def logistic_autoencoder_binary_x(x, w, hidbias, visbias):
+    hid = logistic(dot(x, w) + hidbias)
+    # -- using w.T here is called using "tied weights"
+    # -- using a second weight matrix here is called "untied weights"
+    x_rec = logistic(dot(hid, w.T) + visbias)
+    cost = cross_entropy(x, x_rec)
+    return cost, hid
+
+
+# De-Noising binary-binary autoencoder (again, with "tied" weights)
+def denoising_autoencoder_binary_x(x, w, hidbias, visbias, noise_level):
+    # -- corrupt the input by zero-ing out some values randomly
+    noisy_x = x * (rand(*x.shape) > noise_level)
+    hid = logistic(dot(noisy_x, w) + hidbias)
+    # -- using w.T here is called using "tied weights"
+    # -- using a second weight matrix here is called "untied weights"
+    x_rec = logistic(dot(hid, w.T) + visbias)
+    cost = cross_entropy(x, x_rec)
+    return cost, hid
+
+
+# binary-binary RBM, Contastive Divergence (CD-1)
+def rbm_binary_x(x, w, hidbias, visbias):
+    hid = logistic(dot(x, w) + hidbias)
+    hid_sample = (hid > rand(*hid.shape)).astype(x.dtype)
+
+    # -- N.B. model is not actually trained to reconstruct x
+    x_rec = logistic(dot(hid_sample, w.T) + visbias)
+    x_rec_sample = (x_rec > rand(*x_rec.shape)).astype(x.dtype)
+
+    # "negative phase" hidden unit expectation
+    hid_rec = logistic(dot(x_rec_sample, w) + hidbias)
+
+    def free_energy(xx):
+        xw_b = dot(xx, w) + hidbias
+        return -log(1 + exp(xw_b)).sum(axis=1) - dot(xx, visbias)
+
+    cost = free_energy(x) - free_energy(x_rec_sample)
+    return cost, hid
+
+
+# real-discrete K-means
+def k_means_real_x(x, w, hidbias, visbias):
+    xw = euclidean_distances2(x - visbias, w.T)
+    # -- This calculates a hard winner
+    hid = (xw == xw.min(axis=1)[:, newaxis])
+    x_rec = dot(hid, w.T)
+    cost = ((x - x_rec) ** 2).mean(axis=1)
+    return cost, hid
+
+
+FISTA = NotImplementedError
+# real-real Sparse Coding
+def sparse_coding_real_x(x, w, hidbias, visbias, sparse_coding_algo=FISTA):
+    # -- several sparse coding algorithms have been proposed, but they all
+    # give rise to a feature learning algorithm that looks like this:
+    hid = sparse_coding_algo(x, w)
+    x_rec = dot(hid, w.T) + visbias
+    cost = ((x - x_rec) ** 2).mean(axis=1)
+    # -- the gradient on this cost wrt `w` through the sparse_coding_algo is
+    # often ignored. At least one notable exception is the work of Karol
+    # Greggor.  I feel like the Implicit Differentiation work of Drew Bagnell
+    # is another, but I'm not sure.
+    return cost, hid
+
+
+#
+# SECTION MAIN ROUTINE DRIVER
+#
 
 def main():
     # -- top-level parameters of this script
@@ -26,11 +163,13 @@ def main():
     n_examples = 10000
     online_batch_size = 1
     online_epochs = 3
-    algo = 'autoencoder'  # -- see below for the other options
-    # -- parameters for lbfgs
+
+    # -- TIP: partial creates a new function with some parameters filled in
+    # algo = partial(denoising_autoencoder_binary_x, noise_level=0.3)
+    algo = logistic_autoencoder_binary_x
+
     batch_epochs = 10
     lbfgs_m = 20
-    dae_noise = 0.3
 
     n_hidden = n_hidden1 * n_hidden2
     rng = np.random.RandomState(123)
@@ -57,23 +196,10 @@ def main():
         online_batch_size,
         x.shape[1]))
 
-    def train_criterion(w, hidbias, visbias, x_i=x):
-        if algo == 'autoencoder':
-            cost, hid = unsup.logistic_autoencoder_binary_x(
-                    x_i, w, hidbias, visbias)
-        elif algo == 'dae':
-            cost, hid = unsup.denoising_autoencoder_binary_x(
-                    x_i, w, hidbias, visbias, noise_level=dae_noise)
-        elif algo == 'rbm':
-            cost, hid = unsup.rbm_binary_x(
-                    x_i, w, hidbias, visbias)
-        else:
-            # -- there is a pca, and a k-means implementation
-            #    in unsup as well to patch in here.
-            raise NotImplementedError('unrecognized algo', algo)
-
-        l1_cost = abs(w).sum() * 0.0
-        l2_cost = (w ** 2).sum() * 0.0
+    def train_criterion(ww, hbias, vbias, x_i=x):
+        cost, hid = algo(x_i, ww, hbias, vbias)
+        l1_cost = abs(ww).sum() * 0.0    # -- raise 0.0 to enforce l1 penalty
+        l2_cost = (ww ** 2).sum() * 0.0  # -- raise 0.0 to enforce l2 penalty
         return cost.mean() + l1_cost + l2_cost
 
     # -- ONLINE TRAINING

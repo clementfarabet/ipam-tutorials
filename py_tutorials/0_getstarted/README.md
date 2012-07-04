@@ -147,5 +147,17 @@ key quits.
     $ python -m skdata.mnist.main show
     $ python -m skdata.svhn.main show  # XXX
 
+The `python -m` command executes an importable module as if you had run it as a
+script like we did in the examples above.  The `python -c` command runs a
+string as if it were the contents of a script, so we can run from the bash
+shell:
+
+    $ python -c 'import skdata.mnist.main; print skdata.mnist.main.__file__'
+
+This command prints out the location in the filesystem of the main.py file that
+we ran. Open that file up with your favorite text editor to get a sense for how
+to use skdata. (HINT: if the __file__ ends with '.pyc' then the interpreter has
+loaded the pre-parsed bytecode version. There is a '.py' file next to it that
+you can read.)
 
 [skdata]: http://jaberg.github.com/skdata/ "Scikit-data"

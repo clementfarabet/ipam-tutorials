@@ -121,3 +121,31 @@ get in the habit of *seeding* your generators right off the bat like this:
 
 This example is already saved in the accompanying [hello_random.py](./0_getstarted/hello_random.py), so you can just type `python hello_random.py` in the current directory to try it out.
 
+
+Browing through CIFAR10
+-----------------------
+
+The data sets we will use in the upcoming tutorials are provided via the
+[skdata][skdata] package. The skdata package provides the logic of downloading,
+unpacking, and providing a meaningful Python interface to various public data
+sets.
+
+Python has a tradition of "batteries included" design (have a look at the
+[standard library]() for example, it includes many file-loading routines and even a
+[web server]()!)
+In keeping with that tradition, [skdata][skdata] datasets contain little main
+scripts with sub-commands that do standard dataset-related things (and sometimes
+more specific dataset-related things.)  For example, if `glumpy` and `skdata` have
+been installed, then the following script should launch a little program to view
+the images in CIFAR10:
+
+    $ python -m skdata.cifar10.main show
+
+The 'j' and 'k' keys step forward and back through the set of images and the 'q'
+key quits.
+
+    $ python -m skdata.mnist.main show
+    $ python -m skdata.svhn.main show  # XXX
+
+
+[skdata]: http://jaberg.github.com/skdata/ "Scikit-data"

@@ -2,74 +2,6 @@
 Getting Started with Scientific Python
 ======================================
 
-There are several great resources to help you get oriented to use Python for
-numeric scientific work.
-
-* [Unix/Python/NumPy](http://www.cs.utah.edu/~hal/courses/2009F_ML/p0/) - This
-  is a really high-level intro to unix and Python.  There is tons of
-  documentation for these things and they're kind of out of scope of these
-  tutorials--by all means dig around the net for more background if you want
-  to know more.
-
-* [NumPy basics](http://www.scipy.org/Tentative_NumPy_Tutorial) - [NumPy](XXX) is
-  the defacto official n-dimensional array data type for Python. Doing
-  numerical work in Python, you will use these *all the time*.
-
-* [SciPy Getting Started](http://www.scipy.org/Getting_Started) - This is a
-  point of entry for `scipy` which is a core package with lots of useful
-  things, whose contributors (together with the NumPy people) form the core
-  of the scientific Python community.  Especially useful:
-  * [scipy.io](XXX)
-  * [scipy.ndimage](XXX)
-  * [scipy.optimize](XXX)
-  * [scipy.sparse](XXX)
-  * [scipy.signal](XXX)
-
-* "Scikits" was a somewhat ill-fated incubator process to migrate new submodules
-    into scipy, but which now refers informally to several peripheral scientific Python
-    packages. The ones most relevant to feature learning algorithms are:
-
-    * [scikit-data](XXX) provides
-        well-documented and well-tested implementations of many standard ML algorithms.
-        They have a great community 
-
-    * [scikit-image](XXX)
-
-    * [scikit-data](XXX)
-
-* [IPython](http://ipython.org/) is a feature-rich Python interpreter.
-  Personally I haven't really gotten into it, but lots of people love it and
-  it can do a lot of amazing things (incl. distributed processing and
-  collaborative html workspace publishing).
-
-* [Matplotlib](XXX) is the most widely-used plotting library for Python. It provides an
-  interface similar to that of MATLAB or R. It is sometimes annoying, and not as flashy as say,
-  [d3](XXX) but it is the workhorse of data visualization in Python.
-
-* [Theano]() is an array expression compiler written at the LISA lab
-  at the University of Montreal. Though it is less widely adopted than the projects
-  mentioned above, it has features that are specifically useful for some types of machine
-  learning: symbolic differentiation and behind-the-scenes GPU execution.
-
-* [Deep Learning Tutorials]() provide code-centered introductions to 
-  Deep Learning algorithms and architectures.
-  They make heavy use of Theano, and illustrate good practices
-  of programming with Theano.
-
-
-* [PyAutoDiff](XXX) - provides automatic differentiation for code using NumPy.
-  Currently this is a Theano front-end,
-  but the API has been designed to keep Theano out of
-  the sight of client code.
-  It is quite new and not-well-tested, but I am excited about the possibilities here.
-
-* [pandas](XXX) - R-like data structures (data frame) with emphasis
-    on timeseries prediction (I think).
-
-* [Cython](XXX) [Copperhead](XXX) [numexpr](XXX)
-
-* [ContinuumIO](XXX) 
-
 
 Hello Random World
 ------------------
@@ -163,3 +95,90 @@ loaded the pre-parsed bytecode version. There is a '.py' file next to it that
 you can read.)
 
 [skdata]: http://jaberg.github.com/skdata/ "Scikit-data"
+  
+
+Python Software Ecosystem
+-------------------------
+
+Deep learning can take your research in many directions, and it's nice that
+Python has a lot of projects to help you on your way:
+
+* [Python](http://python.org/) - the standard library is surprisingly comprehensive, get to
+  know what's in it.
+
+* [NumPy](http://numpy.scipy.org/) - the defacto official n-dimensional array data type for Python.
+  Doing numerical work in Python, you will use these *all the time*.
+
+* [SciPy](http://www.scipy.org) - a library of many algorithms and utilities
+  that are useful across a broad range of scientific work.
+  I originally captioned the following "especially useful" but the list grew to
+  include almost the entire library:
+
+  * [scipy.io](http://docs.scipy.org/doc/scipy/reference/io.html) - read and write various matrix formats including MATLAB
+
+  * [scipy.linalg](http://docs.scipy.org/doc/scipy/reference/linalg.html) - decompositions, inverses, etc.
+
+  * [scipy.ndimage](http://docs.scipy.org/doc/scipy/reference/ndimage.html) - basic image processing
+
+  * [scipy.optimize](http://docs.scipy.org/doc/scipy/reference/optimize.html) - 1-D and N-D optimization algorithms
+
+  * [scipy.signal](http://docs.scipy.org/doc/scipy/reference/signal.html) - signal processing
+
+  * [scipy.sparse](http://docs.scipy.org/doc/scipy/reference/sparse.html) - several sparse matrix types
+
+  * [scipy.special](http://docs.scipy.org/doc/scipy/reference/special.html) - special functions (e.g. erf)
+  
+  * [scipy.stats](http://docs.scipy.org/doc/scipy/reference/stats.html) - pdfs, cdfs, sampling algorithms, tests 
+
+* [IPython](http://ipython.org/) is a feature-rich Python interpreter.
+  Personally I haven't really gotten into it, but lots of people love it and
+  it can do a lot of amazing things (incl. distributed processing and
+  collaborative html workspace publishing).
+
+* [Matplotlib](http://matplotlib.sourceforge.net/) is the most widely-used plotting library for Python. It provides an
+  interface similar to that of MATLAB or R. It is sometimes annoying, and not as flashy as say,
+  [d3](http://d3js.org/) but it is the workhorse of data visualization in Python.
+
+* [Theano](http://www.deeplearning.net/software/theano/) - an array expression compiler, with automatic differentiation and behind-the-scenes GPU execution.
+
+* [PyAutoDiff](https://github.com/jaberg/pyautodiff) - provides automatic differentiation for code using NumPy.
+  Currently this is a Theano front-end, but the API has been designed to keep Theano out of the sight of client code.
+
+* [pandas](http://pandas.pydata.org/) - machine learning algorithms and types, mainly for working with time series.
+  Includes R-like data structures (like R's data frame).
+
+* [Cython](http://cython.org/) - a compiler for a more strongly-typed Python dialect, very useful for optimizing numeric Python code.
+
+* [Copperhead](http://copperhead.github.com) - compiles natural python syntax to GPU kernels
+
+* [numexpr](http://code.google.com/p/numexpr/) - compiles expression strings to perform loop-fused element-wise computations
+
+* [scikit-learn](http://scikit-learn.org/stable/) - well-documented and well-tested implementations of many standard ML algorithms.
+
+* [scikits-image](http://scikits-image.org/) - image-processing (edge detection, color spaces, many standard algorithms)
+
+* [skdata](http://jaberg.github.com/skdata) - data sets for machine learning
+
+
+
+Scientific Python Tutorials
+---------------------------
+
+There are several great resources to help you get oriented to use Python for
+numeric scientific work.
+
+* [Unix/Python/NumPy](http://www.cs.utah.edu/~hal/courses/2009F_ML/p0/) - This
+  is a really high-level intro to unix and Python.  There is tons of
+  documentation for these things and they're kind of out of scope of these
+  tutorials--by all means dig around the net for more background if you want
+  to know more.
+
+* [NumPy basics](http://www.scipy.org/Tentative_NumPy_Tutorial) 
+
+* [SciPy Getting Started](http://www.scipy.org/Getting_Started)
+
+* [Deep Learning Tutorials](http://www.deeplearning.net/tutorial/) provide code-centered introductions to 
+  Deep Learning algorithms and architectures.
+  They make heavy use of Theano, and illustrate good practices
+  of programming with Theano.
+

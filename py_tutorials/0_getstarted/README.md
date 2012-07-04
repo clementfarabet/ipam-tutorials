@@ -26,7 +26,14 @@ numeric scientific work.
 
 * "Scikits" was a somewhat ill-fated incubator process to migrate new submodules
     into scipy, but which now refers informally to several peripheral scientific Python
-    packages.
+    packages. The ones most relevant to feature learning algorithms are:
+
+    * [scikit-data](XXX) provides
+        well-documented and well-tested implementations of many standard ML algorithms.
+        They have a great community 
+
+    * [scikit-image](XXX)
+
 
 * [IPython](http://ipython.org/) is a feature-rich Python interpreter.
   Personally I haven't really gotten into it, but lots of people love it and
@@ -53,10 +60,6 @@ numeric scientific work.
   but the API has been designed to keep Theano out of
   the sight of client code.
   It is quite new and not-well-tested, but I am excited about the possibilities here.
-
-* [skdata](XXX) provides
-    well-documented and well-tested implementations of many standard ML algorithms.
-    They have a great community 
 
 * [pandas](XXX) - R-like data structures (data frame) with emphasis
     on timeseries prediction (I think).

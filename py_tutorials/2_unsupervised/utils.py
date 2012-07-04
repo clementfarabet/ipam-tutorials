@@ -8,6 +8,7 @@ image from a set of samples or weights.
 
 
 import numpy
+import matplotlib.pyplot as plt
 
 
 def scale_to_unit_interval(ndar, eps=1e-8):
@@ -133,4 +134,10 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
                         tile_col * (W + Ws): tile_col * (W + Ws) + W
                         ] = this_img * c
         return out_array
+
+
+def show_filters(x, img_shape, tile_shape):
+    out = tile_raster_images(x, img_shape, tile_shape, (1, 1))
+    plt.imshow(out, cmap=plt.cm.gray)
+    plt.show()
 

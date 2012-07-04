@@ -19,10 +19,11 @@ numeric scientific work.
   point of entry for `scipy` which is a core package with lots of useful
   things, whose contributors (together with the NumPy people) form the core
   of the scientific Python community.  Especially useful:
+  * [scipy.io](XXX)
+  * [scipy.ndimage](XXX)
   * [scipy.optimize](XXX)
   * [scipy.sparse](XXX)
   * [scipy.signal](XXX)
-  * [scipy.ndimage](XXX)
 
 * "Scikits" was a somewhat ill-fated incubator process to migrate new submodules
     into scipy, but which now refers informally to several peripheral scientific Python
@@ -34,6 +35,7 @@ numeric scientific work.
 
     * [scikit-image](XXX)
 
+    * [scikit-data](XXX)
 
 * [IPython](http://ipython.org/) is a feature-rich Python interpreter.
   Personally I haven't really gotten into it, but lots of people love it and

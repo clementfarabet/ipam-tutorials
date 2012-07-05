@@ -1,0 +1,3 @@
+[submodule "py_submodules/autodiff"]
+	path = py_submodules/autodiff
+	url = git://github.com/jaberg/pyautodiff.git

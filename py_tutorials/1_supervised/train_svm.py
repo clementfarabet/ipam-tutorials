@@ -12,9 +12,6 @@ from utils import show_filters
 
 
 # -- top-level parameters of this script
-n_conv_hiddens = [(16, (5, 5)), (64, 5, 5)]
-n_mlp_hiddens = [200]
-n_classes = 10
 dtype = 'float32'  # XXX
 n_examples = 50000
 online_batch_size = 1
@@ -25,19 +22,20 @@ lbfgs_m = 20
 
 # -- load and prepare the data set
 data_view = mnist.views.OfficialVectorClassification(x_dtype=dtype)
+n_classes = 10
 x = data_view.train.x[:n_examples]
 y = data_view.train.y[:n_examples]
-y1 = -1 * ones((len(y), n_classes))
+y1 = -1 * ones((len(y), n_classes)).astype(dtype)
 y1[arange(len(y)), y] = 1
 
 # --initialize the SVM model
-w = zeros((x.shape[1], n_classes))
-b = zeros(n_classes)
+w = zeros((x.shape[1], n_classes), dtype=dtype)
+b = zeros(n_classes, dtype=dtype)
 
 def svm(ww, bb, xx=x, yy=y1):
+    # -- one vs. all linear SVM loss
     margin = yy * (dot(xx, ww) + bb)
     hinge = maximum(0, 1 - margin)
-    # -- one vs. all linear SVM loss
     cost = hinge.mean(axis=0).sum()
     return cost
 

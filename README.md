@@ -42,7 +42,7 @@ July 9 - 27, 2012
 
 ## Day 3: Greedy Feature Learning
 
-* Random, Imprinting, PCA, ZCA, K-Means, Autoencoder, RBM, Sparse coding
+* Random, Imprinting, PCA, ZCA, K-Means, Autoencoder, RBM, Sparse coding, PSD Autoencoder (Torch)
 
   * Design sample code to show how similar these algorithms are
 

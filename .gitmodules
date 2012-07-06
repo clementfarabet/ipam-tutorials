@@ -7,3 +7,6 @@
 [submodule "py_submodules/skdata"]
 	path = py_submodules/skdata
 	url = git://github.com/jaberg/skdata.git
+[submodule "py_submodules/Theano"]
+	path = py_submodules/Theano
+	url = https://github.com/Theano/Theano.git

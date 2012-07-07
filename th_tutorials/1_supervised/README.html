@@ -152,7 +152,7 @@ torch -i 2_model.lua -model convnet</code></pre>
 <p>In this file, we describe three different models: convolutional neural networks (CNNs, or ConvNets), multi-layer neural networks (MLPs), and a simple linear model (which becomes a logistic regression if used with a negative log-likelihood loss).</p>
 <p>Linear regression is the simplest type of model. It is parametrized by a weight matrix W, and a bias vector b. Mathematically, it can be written as:</p>
 <div class="figure">
-<img src="img/linear_regression.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/linear_regression.png" /><p class="caption"></p>
 </div>
 <p>Using the <em>nn</em> package, describing ConvNets, MLPs and other forms of sequential trainable models is really easy. All we have to do is create a top-level wrapper, which, as for the logistic regression, is going to be a sequential module, and then append modules into it. Implementing a simple linear model is therefore trivial:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">model</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
@@ -160,7 +160,7 @@ torch -i 2_model.lua -model convnet</code></pre>
 <span class="kw">model</span>:add<span class="ot">(</span> <span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">ninputs</span>, <span class="kw">noutputs</span><span class="ot">)</span> <span class="ot">)</span></code></pre>
 <p>A slightly more complicated model is the multi-layer neural network (MLP). This model is parametrized by two weight matrices, and two bias vectors:</p>
 <div class="figure">
-<img src="img/mlp_regression.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/mlp_regression.png" /><p class="caption"></p>
 </div>
 <p>where the function <em>sigmoid</em> is typically the symmetric hyperbolic tangent function. Again, in Torch:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">model</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
@@ -220,29 +220,29 @@ torch -i 2_model.lua -model convnet</code></pre>
 <h2 id="step-3-loss-function">Step 3: Loss Function</h2>
 <p>Now that we have a model, we need to define a loss function to be minimized, across the entire training set:</p>
 <div class="figure">
-<img src="img/loss.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/loss.png" /><p class="caption"></p>
 </div>
 <p>One of the simplest loss functions we can minimize is the mean-square error between the predictions (outputs of the model), and the groundtruth labels, across the entire dataset:</p>
 <div class="figure">
-<img src="img/loss_mse.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/mse_loss.png" /><p class="caption"></p>
 </div>
 <p>or, in Torch:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">criterion</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>MSECriterion<span class="ot">()</span></code></pre>
 <p>The MSE loss is typically not a good one for classification, as it forces the model to exactly predict the values imposed by the targets (labels).</p>
 <p>Instead, a more commonly used, probabilistic objective is the negative log-likelihood. To minimize a negative log-likelihood, we first need to turn the predictions of our models into properly normalized log-probabilities. For the linear model, this is achieved by feeding the output units into a <em>softmax</em> function, which turns the linear regression into a logistic regression:</p>
 <div class="figure">
-<img src="img/logistic_regression.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/logistic_regression.png" /><p class="caption"></p>
 </div>
 <p>As we're interested in classification, the final prediction is then achieved by taking the argmax of this distribution:</p>
 <div class="figure">
-<img src="img/logistic_argmax.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/logistic_argmax.png" /><p class="caption"></p>
 </div>
 <p>in which case the ouput y is a scalar.</p>
 <p>More generally, the output of any model can be turned into normalized log-probabilities, by stacking a <em>softmax</em> function on top. So given any of the models defined above, we can simply do:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">model</span>:add<span class="ot">(</span> <span class="kw">nn</span><span class="ot">.</span>LogSoftMax<span class="ot">()</span> <span class="ot">)</span></code></pre>
 <p>We want to maximize the likelihood of the correct (target) class, for each sample in the dataset. This is equivalent to minimizing the negative log-likelihood (NLL), or minimizing the cross-entropy between the predictions of our model and the targets (training data). Mathematically, the per-sample loss can be defined as:</p>
 <div class="figure">
-<img src="img/nll_loss.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/nll_loss.png" /><p class="caption"></p>
 </div>
 <p>Given that our model already produces log-probabilities (thanks to the <em>softmax</em>), the loss is quite straightforward to estimate. In Torch, we use the <em>ClassNLLCriterion</em>, which expects its input as being a vector of log-probabilities, and the target as being an integer pointing to the correct class:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">criterion</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>ClassNLLCriterion<span class="ot">()</span></code></pre>

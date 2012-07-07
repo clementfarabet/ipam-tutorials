@@ -300,7 +300,7 @@ Now that we have a model, we need to define a loss function to be minimized, acr
 
 One of the simplest loss functions we can minimize is the mean-square error between the predictions (outputs of the model), and the groundtruth labels, across the entire dataset:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/loss_mse.png)
+![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/mse_loss.png)
 
 or, in Torch:
 

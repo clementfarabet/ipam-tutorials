@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+   <title>Torch7 Packages</title>
+   <style>
+      body {font-family:helvetica,arial; margin:auto; padding:0; width:600px;}
+      a {color:#777;text-decoration:none;}
+      h1 {color:#777;}
+      h2 {color:#444;}
+      code {background:#eee;color:#222;}
+   </style>
+</head>
+<body>
+<h1 id="getting-started-with-torch">Getting Started with Torch</h1>
+<p>Torch7 provides a Matlab-like environment for state-of-the-art machine learning algorithms. It is easy to use and provides a very efficient implementation, thanks to an easy and fast scripting language, <a href="http://www.lua.org/">Lua</a> and an underlying C/OpenMP/CUDA implementation.</p>
+<p>Torch7 is developed at <a href="http://www.idiap.ch/">Idiap Research Institute</a>, <a href="http://www.cs.nyu.edu/~yann/">New York University</a> and <a href="http://www.nec-labs.com/">NEC Laboratories America</a>.</p>
+<p>At this time, Torch7 is maintained by <a href="http://ronan.collobert.com/">Ronan Collobert</a>, <a href="http://www.clement.farabet.net/">Clement Farabet</a> and <a href="http://koray.kavukcuoglu.org/">Koray Kavukcuoglu</a>. We also use the Qt &lt;-&gt; Lua interface from <a href="http://leon.bottou.org/">Leon Bottou</a>.</p>
+<h2 id="installing-torch">Installing Torch</h2>
+<p>For these tutorials, we assume that Torch is already installed, as well as extra packages (<em>image</em>, <em>nnx</em>, <em>unsup</em>). If you want to install Torch on your machine, follow the instructions available <a href="http://www.torch.ch/manual/install/index">here</a>. A more condensed version can also be found <a href="http://code.cogbits.com/">here</a>.</p>
+<h2 id="running-code">Running Code</h2>
+<p>Torch7 is interpreted, so the easiest way to get started is to start an interpreter, and start typing commands:</p>
+<pre class="sourceCode bash"><code class="sourceCode bash">$ torch
+Try the IDE: torch -ide
+Type <span class="kw">help()</span> <span class="kw">for</span> <span class="kw">more</span> info
+Torch 7.0  Copyright <span class="kw">(</span>C<span class="kw">)</span> 2001-2011 Idiap, NEC Labs, NYU
+Lua 5.1  Copyright <span class="kw">(</span>C<span class="kw">)</span> 1994-2008 Lua.org, PUC-Rio</code></pre>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">a</span> <span class="ot">=</span> <span class="dv">10</span>
+<span class="kw">t7</span><span class="ot">&gt;</span> <span class="ot">=</span><span class="kw">a</span>
+<span class="dv">10</span>
+<span class="kw">t7</span><span class="ot">&gt;</span> <span class="fu">print</span> <span class="st">&#39;something&#39;</span>
+<span class="kw">something</span>
+<span class="kw">t7</span><span class="ot">&gt;</span> <span class="ot">=</span> <span class="st">&#39;something&#39;</span>
+<span class="kw">something</span>
+<span class="kw">t7</span><span class="ot">&gt;</span> </code></pre>
+<p>By default, the interpreter preloads the torch and plotting packages. Extra packages, such as image, and nn, must be required manually:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t7</span><span class="ot">&gt;</span> <span class="fu">require</span> <span class="st">&#39;nn&#39;</span>
+<span class="kw">t7</span><span class="ot">&gt;</span> <span class="fu">require</span> <span class="st">&#39;image&#39;</span></code></pre>
+<p>The image package allows easy rendering of images:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">i</span> <span class="ot">=</span> <span class="kw">image</span><span class="ot">.</span>lena<span class="ot">()</span>
+<span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">image</span><span class="ot">.</span>display<span class="ot">(</span><span class="kw">i</span><span class="ot">)</span></code></pre>
+<div class="figure">
+<img src="img/lena.png" /><p class="caption"></p>
+</div>
+<p>In these tutorials, we'll be interested in visualizing internal states, and convolution filters:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">n</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>SpatialConvolution<span class="ot">(</span><span class="dv">1</span>,<span class="dv">16</span>,<span class="dv">12</span>,<span class="dv">12</span><span class="ot">)</span>
+<span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">n</span><span class="ot">.</span><span class="kw">weight</span>, <span class="kw">padding</span><span class="ot">=</span><span class="dv">2</span>, <span class="kw">zoom</span><span class="ot">=</span><span class="dv">4</span><span class="ot">}</span></code></pre>
+<div class="figure">
+<img src="img/filters.png" /><p class="caption"></p>
+</div>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">n</span>:forward<span class="ot">(</span><span class="kw">image</span><span class="ot">.</span>rgb2y<span class="ot">(</span><span class="kw">i</span><span class="ot">))</span>
+<span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">n</span><span class="ot">.</span><span class="kw">output</span>, <span class="kw">padding</span><span class="ot">=</span><span class="dv">2</span>, <span class="kw">zoom</span><span class="ot">=</span><span class="dv">0.25</span>, <span class="kw">legend</span><span class="ot">=</span><span class="st">&#39;states&#39;</span><span class="ot">}</span></code></pre>
+<div class="figure">
+<img src="img/states.png" /><p class="caption"></p>
+</div>
+<p>Note: most functions in Torch support named arguments. In the example above, image.display can be called with arguments in order, or named. When using named arguments, notice that we replace the parenthesis by curly brackets. Curly brackets are used to describe Lua's most general data type: the table.</p>
+<p>A more advanced, graphical interpreter can be launched like this:</p>
+<pre class="sourceCode bash"><code class="sourceCode bash">$ torch -ide</code></pre>
+<div class="figure">
+<img src="img/ide.png" /><p class="caption"></p>
+</div>
+<p>This console has better support for history, and completion.</p>
+<p>Last, but not least, you can of course save code to a file, which should use the .lua extension, and execute it either from your shell prompt, or from the Torch interpreter. All the code in this file has been written to a file called <a href="./getstarted.lua">getstarted.lua</a>. You can run it like this:</p>
+<pre class="sourceCode bash"><code class="sourceCode bash">$ torch getstarted.lua</code></pre>
+<p>or from the Torch interpreter:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t7</span><span class="ot">&gt;</span> <span class="fu">dofile</span> <span class="st">&#39;getstarted.lua&#39;</span></code></pre>
+<p>More exhaustive information can be found in this <a href="http://www.torch.ch/manual/tutorial/index">basic tutorial section</a>. In particular a very quick <a href="http://www.torch.ch/manual/tutorial/index#lua_basics">Lua primer</a>, a fast intro to <a href="http://www.torch.ch/manual/tutorial/index#torch_basicsplaying_with_tensors">Torch types</a>, and a very simple introduction to <a href="http://www.torch.ch/manual/tutorial/index#exampletraining_a_neural_network">neural network training</a>.</p>
+<h2 id="getting-help">Getting help</h2>
+<p>Torch's documentation is work in progress, but you can already get help for most function provided in the official packages (<em>torch</em>, <em>nn</em>, <em>gnuplot</em>, <em>image</em>). Documentation is installed on your machine, along with Torch's packages. The default location is <a href="file:///usr/local/share/torch/html/index.html">/usr/local/share/torch/html/index.html</a>. It is also mirrored online <a href="http://www.torch.ch/manual">here</a>, and can be triggered from your interpreter by doing:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t7</span><span class="ot">&gt;</span> browse<span class="ot">()</span></code></pre>
+<p>Now a quick way to learn functions, and explore packages, is to use TAB-completion, that is, start typing something in the Torch interpreter, and then hit TAB twice:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">torch</span><span class="ot">.</span> <span class="ot">+</span> <span class="kw">TAB</span>
+<span class="kw">torch</span><span class="ot">.</span><span class="kw">ByteTensor</span><span class="ot">.</span>            <span class="kw">torch</span><span class="ot">.</span>include<span class="ot">(</span>
+<span class="kw">torch</span><span class="ot">.</span><span class="kw">CharStorage</span><span class="ot">.</span>           <span class="kw">torch</span><span class="ot">.</span>initialSeed<span class="ot">(</span>
+<span class="kw">torch</span><span class="ot">.</span><span class="kw">CharTensor</span><span class="ot">.</span>            <span class="kw">torch</span><span class="ot">.</span>inverse<span class="ot">(</span>
+<span class="ot">...</span></code></pre>
+<p>This will give you a list of all functions provided in the <em>torch</em> package. You can then get inline help for a specific function like this:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t7</span><span class="ot">&gt;</span> help<span class="ot">(</span><span class="kw">torch</span><span class="ot">.</span><span class="kw">randn</span><span class="ot">)</span>
+
+<span class="er">++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</span><span class="ot">+</span>
+<span class="ot">[</span><span class="kw">res</span><span class="ot">]</span> <span class="kw">torch</span><span class="ot">.</span>randn<span class="ot">(</span> <span class="ot">[</span><span class="kw">res</span>,<span class="ot">]</span> <span class="kw">m</span> <span class="ot">[</span>, <span class="kw">n</span>, <span class="kw">k</span>, <span class="ot">...])</span>       
+ <span class="kw">y</span><span class="ot">=</span><span class="kw">torch</span><span class="ot">.</span>randn<span class="ot">(</span><span class="kw">n</span><span class="ot">)</span> <span class="kw">returns</span> <span class="kw">a</span> <span class="kw">one</span><span class="ot">-</span><span class="kw">dimensional</span> <span class="kw">tensor</span> <span class="kw">of</span> <span class="kw">size</span> <span class="kw">n</span> <span class="kw">filled</span> 
+<span class="kw">with</span> <span class="fu">random</span> <span class="kw">numbers</span> <span class="kw">from</span> <span class="kw">a</span> <span class="kw">normal</span> <span class="kw">distribution</span> <span class="kw">with</span> <span class="kw">mean</span> <span class="kw">zero</span> <span class="kw">and</span> <span class="kw">variance</span> 
+<span class="kw">one</span><span class="ot">.</span>
+ <span class="kw">y</span><span class="ot">=</span><span class="kw">torch</span><span class="ot">.</span>randn<span class="ot">(</span><span class="kw">m</span>,<span class="kw">n</span><span class="ot">)</span> <span class="kw">returns</span> <span class="kw">a</span> <span class="kw">mxn</span> <span class="kw">tensor</span> <span class="kw">of</span> <span class="fu">random</span> <span class="kw">numbers</span> <span class="kw">from</span> <span class="kw">a</span> <span class="kw">normal</span> 
+<span class="kw">distribution</span> <span class="kw">with</span> <span class="kw">mean</span> <span class="kw">zero</span> <span class="kw">and</span> <span class="kw">variance</span> <span class="kw">one</span><span class="ot">.</span>
+<span class="er">++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</span><span class="ot">+</span></code></pre>
+<h2 id="going-further">Going Further</h2>
+<p>Now that you have all the basic pieces, I invite you to take a look at Torch's <a href="http://www.torch.ch/manual/tutorial/index">basic tutorial/introduction</a>. In particular, take a look at:</p>
+<ul>
+<li>a very quick <a href="http://www.torch.ch/manual/tutorial/index#lua_basics">Lua primer</a>,</li>
+<li>a fast intro to <a href="http://www.torch.ch/manual/tutorial/index#torch_basicsplaying_with_tensors">Torch types</a>,</li>
+<li>a very simple introduction to <a href="http://www.torch.ch/manual/tutorial/index#exampletraining_a_neural_network">neural network training</a>.</li>
+</ul>
+<p>The Torch core is a general numeric library, and although most early packages were built around neural network training, lots of 3rd packages have developed that provide code for all sorts of things, including image processing, video processing, graphical models (CRFs, ...), parallel computing, camera interfaces, ... A complete list of packages we support can be found <a href="http://code.cogbits.com/packages/">here</a>. Torch has a built-in package management system that makes it very easy for anyone to get and develop new packages, which can be shared easily, using, for example <a href="https://github.com/">GitHub</a> as a distribution platform. More details about this <a href="http://www.torch.ch/manual/install/index#the_torch_package_management_system">here</a>.</p>

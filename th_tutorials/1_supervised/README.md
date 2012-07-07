@@ -566,3 +566,10 @@ while true
    test()
 end
 ```
+
+All Done!
+---------
+
+The final step of course, is to run _doall.lua_, which will train the model
+over the entire training set. If you use the -extra flag, you will obtain
+state-of-the-art results (in a couple of days of course!).

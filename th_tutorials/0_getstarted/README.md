@@ -67,7 +67,7 @@ t7> i = image.lena()
 t7> image.display(i)
 ```
 
-![](img/lena.png)
+![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/0_getstarted/img/lena.png)
 
 In these tutorials, we'll be interested in visualizing internal states, and
 convolution filters:
@@ -77,14 +77,14 @@ t7> n = nn.SpatialConvolution(1,16,12,12)
 t7> image.display{image=n.weight, padding=2, zoom=4}
 ```
 
-![](img/filters.png)
+![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/0_getstarted/img/filters.png)
 
 ```lua
 t7> n:forward(image.rgb2y(i))
 t7> image.display{image=n.output, padding=2, zoom=0.25, legend='states'}
 ```
 
-![](img/states.png)
+![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/0_getstarted/img/states.png)
 
 Note: most functions in Torch support named arguments. In the example above, 
 image.display can be called with arguments in order, or named. When using named
@@ -97,7 +97,7 @@ A more advanced, graphical interpreter can be launched like this:
 $ torch -ide
 ```
 
-![](img/ide.png)
+![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/0_getstarted/img/ide.png)
 
 This console has better support for history, and completion.
 

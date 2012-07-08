@@ -5,9 +5,11 @@
    <style>
       body {font-family:helvetica,arial; margin:auto; padding:0; width:600px;}
       a {color:#777;text-decoration:none;}
-      h1 {color:#777;}
+      h1 {color:#777;background:#eee;padding:10px;margin-top:0px;padding-top:20px;text-align:center;}
       h2 {color:#444;}
-      code {background:#eee;color:#222;}
+      pre {background:#eee;color:#222;width:100%;padding:10px;
+           overflow:scroll;border-style:solid;border-color:#ddd;border-width:4px;
+           -moz-border-radius: 15px; border-radius: 15px;}
    </style>
 </head>
 <body>
@@ -39,24 +41,24 @@ Lua 5.1  Copyright <span class="kw">(</span>C<span class="kw">)</span> 1994-2008
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">i</span> <span class="ot">=</span> <span class="kw">image</span><span class="ot">.</span>lena<span class="ot">()</span>
 <span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">image</span><span class="ot">.</span>display<span class="ot">(</span><span class="kw">i</span><span class="ot">)</span></code></pre>
 <div class="figure">
-<img src="img/lena.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/0_getstarted/img/lena.png" /><p class="caption"></p>
 </div>
 <p>In these tutorials, we'll be interested in visualizing internal states, and convolution filters:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">n</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>SpatialConvolution<span class="ot">(</span><span class="dv">1</span>,<span class="dv">16</span>,<span class="dv">12</span>,<span class="dv">12</span><span class="ot">)</span>
 <span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">n</span><span class="ot">.</span><span class="kw">weight</span>, <span class="kw">padding</span><span class="ot">=</span><span class="dv">2</span>, <span class="kw">zoom</span><span class="ot">=</span><span class="dv">4</span><span class="ot">}</span></code></pre>
 <div class="figure">
-<img src="img/filters.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/0_getstarted/img/filters.png" /><p class="caption"></p>
 </div>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">n</span>:forward<span class="ot">(</span><span class="kw">image</span><span class="ot">.</span>rgb2y<span class="ot">(</span><span class="kw">i</span><span class="ot">))</span>
 <span class="kw">t7</span><span class="ot">&gt;</span> <span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">n</span><span class="ot">.</span><span class="kw">output</span>, <span class="kw">padding</span><span class="ot">=</span><span class="dv">2</span>, <span class="kw">zoom</span><span class="ot">=</span><span class="dv">0.25</span>, <span class="kw">legend</span><span class="ot">=</span><span class="st">&#39;states&#39;</span><span class="ot">}</span></code></pre>
 <div class="figure">
-<img src="img/states.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/0_getstarted/img/states.png" /><p class="caption"></p>
 </div>
 <p>Note: most functions in Torch support named arguments. In the example above, image.display can be called with arguments in order, or named. When using named arguments, notice that we replace the parenthesis by curly brackets. Curly brackets are used to describe Lua's most general data type: the table.</p>
 <p>A more advanced, graphical interpreter can be launched like this:</p>
 <pre class="sourceCode bash"><code class="sourceCode bash">$ torch -ide</code></pre>
 <div class="figure">
-<img src="img/ide.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/0_getstarted/img/ide.png" /><p class="caption"></p>
 </div>
 <p>This console has better support for history, and completion.</p>
 <p>Last, but not least, you can of course save code to a file, which should use the .lua extension, and execute it either from your shell prompt, or from the Torch interpreter. All the code in this file has been written to a file called <a href="./getstarted.lua">getstarted.lua</a>. You can run it like this:</p>

@@ -7,7 +7,7 @@ image from a set of samples or weights.
 """
 
 
-import numpy
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -72,10 +72,10 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
         assert len(X) == 4
         # Create an output numpy ndarray to store the image
         if output_pixel_vals:
-            out_array = numpy.zeros((out_shape[0], out_shape[1], 4),
+            out_array = np.zeros((out_shape[0], out_shape[1], 4),
                                     dtype='uint8')
         else:
-            out_array = numpy.zeros((out_shape[0], out_shape[1], 4),
+            out_array = np.zeros((out_shape[0], out_shape[1], 4),
                                     dtype=X.dtype)
 
         #colors default to 0, alpha defaults to 1 (opaque)
@@ -91,7 +91,7 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
                 dt = out_array.dtype
                 if output_pixel_vals:
                     dt = 'uint8'
-                out_array[:, :, i] = numpy.zeros(out_shape,
+                out_array[:, :, i] = np.zeros(out_shape,
                         dtype=dt) + channel_defaults[i]
             else:
                 # use a recurrent call to compute the channel and store it
@@ -110,7 +110,7 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
         dt = X.dtype
         if output_pixel_vals:
             dt = 'uint8'
-        out_array = numpy.zeros(out_shape, dtype=dt)
+        out_array = np.zeros(out_shape, dtype=dt)
 
         for tile_row in xrange(tile_shape[0]):
             for tile_col in xrange(tile_shape[1]):
@@ -137,7 +137,44 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
 
 
 def show_filters(x, img_shape, tile_shape):
+    """
+    Call matplotlib imshow on the rows of `x`, interpreted as images.
+
+    Parameters:
+    x          - a matrix with T rows of P columns
+    img_shape  - a (height, width) pair such that `height * width == P`
+    tile_shape - a (rows, cols) pair such that `rows * cols == T`
+    """
     out = tile_raster_images(x, img_shape, tile_shape, (1, 1))
-    plt.imshow(out, cmap=plt.cm.gray)
+    plt.imshow(out, cmap=plt.cm.gray, interpolation='nearest')
 #    plt.show()
 
+
+def hinge(margin):
+    return np.maximum(0, 1 - margin)
+
+
+def ova_svm_prediction(W, b, x):
+    """
+    Return a vector of M integer predictions
+
+    W : weight matrix of shape (N, L)
+    b : bias vector of shape (L,)
+    x : feature vector of shape (M, N)
+    """
+    return np.argmax(np.dot(x, W) + b, axis=1)
+
+
+def ova_svm_cost(W, b, x, y1):
+    """
+    Return a vector of M example costs using hinge loss
+
+    W : weight matrix of shape (N, L)
+    b : bias vector of shape (L,)
+    x : feature vector of shape (M, N)
+    y1: +-1 labels matrix shape (M, L)
+    """
+    # -- one vs. all linear SVM loss
+    margin = y1 * (np.dot(x, W) + b)
+    cost = hinge(margin).mean(axis=0).sum()
+    return cost

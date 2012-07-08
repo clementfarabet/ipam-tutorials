@@ -8,10 +8,32 @@ July 9 - 27, 2012
 
 ## Day 1: Setup
 
-* 5 mins rapid overview of how we're going to organize the practical
-  sessions. What are our goals for students, what we're offering to show.
-  
-  * Schedule: 1 hour on four days this first week:
+* Welcome to the Practical Sessions for the summer school
+
+  * Objectives:
+
+    * implementation-level understanding of supervised and unsupervised learning algorithms
+
+      * Many algorithms are more similar than researchers in the field
+        might have you believe!
+
+    * a sense of hyper-parameter sensitivities and run-times for various
+      algorithms
+
+    * appreciation for two approaches to programming deep learning experiments
+
+      * Code fragments for interactive exploration
+
+      * Full-blown application
+
+    * exposure to programming languages and software stacks:
+
+      * Python, NumPy, SciPy, Theano
+
+      * Lua, Torch7
+
+
+  * Schedule: 1 hour on four days this first week
 
     * Monday 12PM - 1PM: _Lua/Torch, Python/Theano, logging in to EC2_
 
@@ -21,7 +43,10 @@ July 9 - 27, 2012
 
     * Thursday 4PM - 5PM: _TBA_
 
-* Time is short for these practical sessions
+
+* Session Structure
+
+  * Time is short for these practical sessions!
 
   * Each day will start with two walk-throughs of things you can experiment with
     (we'll try to be quick, to give you time afterward!)
@@ -33,9 +58,9 @@ July 9 - 27, 2012
     the Python thing in the in-classroom time each day.
 
       * We will negotiate with the organizers to leave the EC2 node up after the sessions
-      
+
       * We will be around all week - feel free to ask questions any time!
-      
+
       * We will be available by email after the first week.
 
 * 10 mins crash course in Python, numpy
@@ -79,3 +104,4 @@ July 9 - 27, 2012
 
 * Recurrent Neural Networks?
 
+* GPU Programming 101?

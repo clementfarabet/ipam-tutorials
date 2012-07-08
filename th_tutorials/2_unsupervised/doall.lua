@@ -54,6 +54,9 @@ cmd:option('-etadecay', 1e-5, 'learning rate decay')
 cmd:option('-momentum', 0, 'gradient momentum')
 cmd:option('-maxiter', 1000000, 'max number of updates')
 
+-- for linear model only:
+cmd:option('-tied', false, 'decoder weights are tied to encoder\'s weights (transposed)')
+
 -- use hessian information for training:
 cmd:option('-hessian', true, 'compute diagonal hessian coefficients to condition learning rates')
 cmd:option('-hessiansamples', 500, 'number of samples to use to estimate hessian')

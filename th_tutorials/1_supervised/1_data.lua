@@ -63,7 +63,7 @@ end
 if not paths.filep(test_file) then
    os.execute('wget ' .. www .. test_file)
 end
-if opt.extra and not paths.filep(extra_file) then
+if opt.size == 'extra' and not paths.filep(extra_file) then
    os.execute('wget ' .. www .. extra_file)   
 end
 
@@ -109,7 +109,7 @@ trainData = {
 -- provided a little tutorial on this, in this same directory:
 -- A_slicing.lua
 
-if opt.extra then
+if opt.size == 'extra' then
    loaded = torch.load(extra_file,'ascii')
    trdata = torch.Tensor(trsize,3,32,32)
    trdata[{ {1,(#trainData.data)[1]} }] = trainData.data

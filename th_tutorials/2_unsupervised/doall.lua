@@ -72,7 +72,7 @@ cmd:option('-display', true, 'display stuff')
 cmd:option('-wcar', '', 'additional flag to differentiate this run')
 cmd:text()
 
-params = cmd:parse(arg)
+params = cmd:parse(arg or {})
 
 rundir = cmd:string('psd', params, {dir=true})
 params.rundir = params.dir .. '/' .. rundir

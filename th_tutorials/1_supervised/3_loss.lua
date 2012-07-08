@@ -22,7 +22,7 @@ if not opt then
    cmd:text('Options:')
    cmd:option('-loss', 'nll', 'type of loss function to minimize: nll | mse | margin')
    cmd:text()
-   opt = cmd:parse(arg)
+   opt = cmd:parse(arg or {})
 
    -- to enable self-contained execution:
    model = nn.Sequential()

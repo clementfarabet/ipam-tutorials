@@ -6,6 +6,7 @@ it using a supervised approach, to solve a multiclass classifaction task. Some o
 here is based on this [existing tutorial](http://torch.cogbits.com/doc/tutorials_supervised/).
 
 The tutorial demonstrates how to:
+
   * pre-process the (train and test) data, to facilitate learning
   * describe a model to solve a classificaiton task
   * choose a loss function to minimize

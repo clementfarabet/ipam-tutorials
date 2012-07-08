@@ -15,21 +15,239 @@
 <body>
 <h1 id="unsupervised-learning">Unsupervised Learning</h1>
 <p>In this tutorial, we're going to learn how to define a model, and train it using an unsupervised approach, with the goal of learning good features/representation for classification tasks. Some of the material here is based on this <a href="http://torch.cogbits.com/doc/tutorials_unsupervised/">existing tutorial</a>.</p>
-<p>The tutorial demonstrates how to: * describe an unsupervised model * define a (multi-term) loss function to minimize * define a sampling procedure (stochastic, mini-batches), and apply one of several optimization techniques to train the model's parameters * use second-order information (diagonal of the hessian) to ease the optimization procedure</p>
+<p>The tutorial demonstrates how to:</p>
+<ul>
+<li>describe an unsupervised model</li>
+<li>define a (multi-term) loss function to minimize</li>
+<li>define a sampling procedure (stochastic, mini-batches), and apply one of several optimization techniques to train the model's parameters</li>
+<li>use second-order information (diagonal of the hessian) to ease the optimization procedure</li>
+</ul>
+<p>As for the supervised learning tutorial, the code is split into multiple files:</p>
+<ul>
+<li>1_data.lua</li>
+<li>2_models.lua</li>
+<li>3_train.lua</li>
+</ul>
+<p>And a top file, <em>doall.lua</em>, runs the complete experiment. In this case though, there are too many inter-dependencies between files, so they can be loaded individually. If you still want to interact with the code, run:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">torch</span> <span class="ot">-</span><span class="kw">i</span> <span class="kw">doall</span><span class="ot">.</span><span class="kw">lua</span></code></pre>
+<p>And issue ctrl+C at anytime, to kill the execution. You will then have access to an interpreter, and be able to explore any of the variables (model, data, ...).</p>
+<p>The complete tutorial uses a version of the Berkeley dataset, which is already locally normalized (preprocessed), with 56x56 patches randomly extracted from the original images.</p>
 <h2 id="step-1-models-loss-functions">Step 1: Models &amp; Loss functions</h2>
+<h3 id="basic-autoencoders">Basic Autoencoders</h3>
+<p>An autoencoder is a model that takes a vector input y, maps it into a hidden representation z (code) using an encoder which typically has this form:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/auto_encoder.png" /><p class="caption"></p>
+</div>
+<p>where s is a non-linear activation function (the tanh function is a common choice), W_e the encoding matrix and b_e a vector of bias parameters.</p>
+<p>The hidden representation z, often called code, is then mapped back into the space of y, using a decoder of this form:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/auto_decoder.png" /><p class="caption"></p>
+</div>
+<p>where W_d is the decoding matrix and b_d a vector of bias parameters.</p>
+<p>The goal of the autoencoder is to minimize the reconstruction error, which is represented by a distance between y and y~. The most common type of distance is the mean squared error:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/mse_loss.png" /><p class="caption"></p>
+</div>
+<p>The code z typically has less dimensions than y, which forces the autoencoder to learn a good representation of the data. In its simplest form (linear), an autoencoder learns to project the data onto its first principal components. If the code z has as many components as y, then no compression is required, and the model could typically end up learning the identity function. Now if the encoder has a non-linear form (using a tanh, or using a multi-layered model), then the autoencoder can learn a potentially more powerful representation of the data.</p>
+<p>To describe the model, we use the <em>unsup</em> package, which provides templates to build autoencoders.</p>
+<p>The first step is to describe an encoder, which we can do by using any of the modules available in nn:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">encoder</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
+<span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">inputSize</span>,<span class="kw">outputSize</span><span class="ot">))</span>
+<span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Tanh<span class="ot">())</span></code></pre>
+<p>The second step is to describe the decoder, a simple linear module:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">decoder</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
+<span class="kw">decoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">outputSize</span>,<span class="kw">inputSize</span><span class="ot">))</span></code></pre>
+<p>Finally, we use the built-in AutoEncoder class from unsup, which automatically provides a mean-square error loss:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">module</span> <span class="ot">=</span> <span class="kw">unsup</span><span class="ot">.</span>AutoEncoder<span class="ot">(</span><span class="kw">encoder</span>, <span class="kw">decoder</span>, <span class="kw">params</span><span class="ot">.</span><span class="kw">beta</span><span class="ot">)</span></code></pre>
+<p>At this stage, estimating the loss (reconstruction error) can be done like this, for arbitrary inputs:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">input</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>randn<span class="ot">(</span><span class="kw">inputSize</span><span class="ot">)</span>
+<span class="kw">loss</span> <span class="ot">=</span> <span class="kw">module</span>:updateOutput<span class="ot">(</span><span class="kw">input</span>,<span class="kw">input</span><span class="ot">)</span></code></pre>
+<p>Note that we need to provide the input, and a target that we wish to reconstruct. In this case the target is the input, but in some cases, we might want to provide a noisy version of the input, and force the autoencoder to predict the correct input (this is what denoising autoencoders do).</p>
+<p>As for any nn module, gradients can be estimated this way:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- get parameters and gradient pointers</span>
+<span class="kw">x</span>,<span class="kw">dl_dx</span> <span class="ot">=</span> <span class="kw">module</span>:getParameters<span class="ot">()</span>
+ 
+<span class="co">-- compute loss</span>
+<span class="kw">loss</span> <span class="ot">=</span> <span class="kw">module</span>:updateOutput<span class="ot">(</span><span class="kw">inputs</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span>, <span class="kw">targets</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+ 
+<span class="co">-- compute gradients wrt input and weights</span>
+<span class="kw">dl_dx</span>:zero<span class="ot">()</span>
+<span class="kw">module</span>:updateGradInput<span class="ot">(</span><span class="kw">input</span>, <span class="kw">input</span><span class="ot">)</span>
+<span class="kw">module</span>:accGradParameters<span class="ot">(</span><span class="kw">input</span>, <span class="kw">input</span><span class="ot">)</span>
+ 
+<span class="co">-- at this stage, dl_dx contains the gradients of the loss wrt</span>
+<span class="co">-- the trainable parameters x</span></code></pre>
+<p>One big shortcoming of basic autoencoders is that it's usually hard to train them, and hard to avoid getting to close to learning the identity function. In practice, using a code y that is smaller than x is enough to avoid learning the identity, but it remains hard to do much better than PCA.</p>
+<p>Using codes that are overcomplete (i.e. with more components than the input) makes the problem even worse. There are different ways that an autoencoder with an overcomplete code may still discover interesting representations. One common way is the addition of sparsity: by forcing units of the hidden representation to be mostly 0s, the autoencoder has to learn a nice distributed representation of the data.</p>
+<p>We now present a method to impose sparsity on the code, which typically allows codes that are overcomplete, sparse, and very useful for tasks like classification/recognition.</p>
+<h3 id="predictive-sparse-decomposition-psd-autoencoder">Predictive Sparse Decomposition (PSD) Autoencoder</h3>
+<p>Adaptive sparse coding methods learn a possibly overcomplete set of basis functions, such that natural image patches can be reconstructed by linearly combining a small subset of these bases. The applicability of these methods to visual object recognition tasks has been limited because of the prohibitive cost of the optimization algorithms required to compute the sparse representation.</p>
+<p>In this tutorial we propose a simple and efficient algorithm to learn overcomplete basis functions, by introducing a particular form of autoencoder. After training, the model also provides a fast and smooth approximator to the optimal representation, achieving even better accuracy than exact sparse coding algorithms on visual object recognition tasks.</p>
+<h4 id="sparse-coding">Sparse Coding</h4>
+<p>Finding a representation z in R^m for a given signal y in R^n by linear combination of an overcomplete set of basis vectors, columns of matrix B with m &gt; n, has infinitely many solutions. In optimal sparse coding, the problem is formulated as:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/sparse_coding.png" /><p class="caption"></p>
+</div>
+<p>where the l0 norm is defined as the number of non-zero elements in a given vector. This is a combinatorial problem, and a common approximation of it is the following optimization problem:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/sparse_coding_optim.png" /><p class="caption"></p>
+</div>
+<p>This particular formulation, called Basis Pursuit Denoising, can be seen as minimizing an objective that penalizes the reconstruction error using a linear basis set and the sparsity of the corresponding representation. While this formulation is nice, inference requires running some sort of iterative minimization algorithm that is always computationally expensive. In the following we present a predictive version of this algorithm, based on an autoencoder formulation, which yields fixed-time, and fast inference.</p>
+<h4 id="linear-psd">Linear PSD</h4>
+<p>In order to make inference efficient, we train a non-linear regressor that maps input signals y to sparse representations z. We consider the following nonlinear mapping:</p>
+<p>https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/)</p>
+<p>where W is a weight trainable matrix, d a trainable vector of biases, and g a vector of gains. We want to train this nonlinear mapping as a predictor for the optimal solution to the sparse coding algorithm presented in the previsous section.</p>
+<p>The following loss function, called predictive sparse decomposition, can help us achieve such a goal:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/psd_loss.png" /><p class="caption"></p>
+</div>
+<p>The first two terms are the basic sparse coding presented above, while the 3rd term is our predictive sparse regressor. Minimizing this loss yields an encoder that produces sparse decompositions of the input signal.</p>
+<p>With the unsup package, this can be implemented very simply.</p>
+<p>We define an encoder first:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">encoder</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
+<span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">inputSize</span>,<span class="kw">outputSize</span><span class="ot">))</span>
+<span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Tanh<span class="ot">())</span>
+<span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Diag<span class="ot">(</span><span class="kw">outputSize</span><span class="ot">))</span></code></pre>
+<p>Then the decoder is the L1 solution presented above:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">decoder</span> <span class="ot">=</span> <span class="kw">unsup</span><span class="ot">.</span>LinearFistaL1<span class="ot">(</span><span class="kw">inputSize</span>, <span class="kw">outputSize</span>, <span class="kw">params</span><span class="ot">.</span><span class="kw">lambda</span><span class="ot">)</span></code></pre>
+<p>Under the hood, this decoder relies on FISTA to find the optimal sparse code. FISTA is available in the optim package.</p>
+<p>Finally, both modules can be packaged together into an autoencoder. We can't use the basic AutoEncoder class to do this, because the LinearFistaL1 decoder is a bit peculiar. Insted, we use a special-purpose PSD container:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">module</span> <span class="ot">=</span> <span class="kw">unsup</span><span class="ot">.</span>PSD<span class="ot">(</span><span class="kw">encoder</span>, <span class="kw">decoder</span><span class="ot">)</span></code></pre>
+<h4 id="convolutional-psd">Convolutional PSD</h4>
+<p>For vision/image applications, fully connected linear autoencoders are often overkill, in their number of trainable parameters. Using convolutional filters, inspired by convolutional networks (see supervised learning tutorial on ConvNets) can help learn much better filters for vision.</p>
+<p>A convolutional version of the PSD autoencoder can be derived by simply replacing the encoder and decoder by convolutional counterparts:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- connection table:</span>
+<span class="kw">conntable</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span><span class="kw">tables</span><span class="ot">.</span>full<span class="ot">(</span><span class="dv">1</span>, <span class="dv">32</span><span class="ot">)</span>
+ 
+<span class="co">-- decoder&#39;s table:</span>
+<span class="kw">local</span> <span class="kw">decodertable</span> <span class="ot">=</span> <span class="kw">conntable</span>:clone<span class="ot">()</span>
+<span class="kw">decodertable</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="dv">1</span> <span class="ot">}]</span> <span class="ot">=</span> <span class="kw">conntable</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="dv">2</span> <span class="ot">}]</span>
+<span class="kw">decodertable</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="dv">2</span> <span class="ot">}]</span> <span class="ot">=</span> <span class="kw">conntable</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="dv">1</span> <span class="ot">}]</span>
+<span class="kw">local</span> <span class="kw">outputSize</span> <span class="ot">=</span> <span class="kw">conntable</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="dv">2</span> <span class="ot">}]</span>:<span class="fu">max</span><span class="ot">()</span>
+ 
+<span class="co">-- encoder:</span>
+<span class="kw">encoder</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
+<span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>SpatialConvolutionMap<span class="ot">(</span><span class="kw">conntable</span>, <span class="dv">5</span>, <span class="dv">5</span><span class="ot">))</span>
+<span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Tanh<span class="ot">())</span>
+<span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Diag<span class="ot">(</span><span class="kw">outputSize</span><span class="ot">))</span>
+ 
+<span class="co">-- decoder is L1 solution:</span>
+<span class="kw">decoder</span> <span class="ot">=</span> <span class="kw">unsup</span><span class="ot">.</span>SpatialConvFistaL1<span class="ot">(</span><span class="kw">decodertable</span>, <span class="dv">5</span>, <span class="dv">5</span>, <span class="dv">25</span>, <span class="dv">25</span><span class="ot">)</span></code></pre>
 <h2 id="step-2-training">Step 2: Training</h2>
+<p>If you've read the tutorial on supervised learning, training a model unsupervised is basically equivalent. We first define a closure that computes the loss, and the gradients of that loss wrt the trainable parameters, and then pass this closure to one of the optimizers in optim. As usual, we use SGD to train autoencoders on large amounts of data:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- some parameters</span>
+<span class="kw">local</span> <span class="kw">minibatchsize</span> <span class="ot">=</span> <span class="dv">50</span>
+ 
+<span class="co">-- parameters</span>
+<span class="kw">x</span>,<span class="kw">dl_dx</span> <span class="ot">=</span> <span class="kw">module</span>:getParameters<span class="ot">()</span>
+ 
+<span class="co">-- SGD config</span>
+<span class="kw">sgdconf</span> <span class="ot">=</span> <span class="ot">{</span><span class="kw">learningRate</span> <span class="ot">=</span> <span class="dv">1e-3</span><span class="ot">}</span>
+ 
+<span class="co">-- assuming a table trainData with the form:</span>
+<span class="co">-- trainData = {</span>
+<span class="co">--    [1] = sample1,</span>
+<span class="co">--    [2] = sample2,</span>
+<span class="co">--    [3] ...</span>
+<span class="co">-- }</span>
+<span class="kw">for</span> <span class="kw">i</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="ot">#</span><span class="kw">trainData</span>,<span class="kw">minibatchsize</span> <span class="kw">do</span>
+ 
+    <span class="co">-- create minibatch of training samples</span>
+    <span class="kw">samples</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>Tensor<span class="ot">(</span><span class="kw">minibatchsize</span>,<span class="kw">inputSize</span><span class="ot">)</span>
+    <span class="kw">for</span> <span class="kw">i</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">minibatchsize</span> <span class="kw">do</span>
+        <span class="kw">samples</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span>
+    <span class="kw">end</span>
+ 
+    <span class="co">-- define closure</span>
+    <span class="kw">local</span> <span class="kw">feval</span> <span class="ot">=</span> <span class="kw">function</span><span class="ot">()</span>
+      <span class="co">-- reset gradient/f</span>
+      <span class="kw">local</span> <span class="kw">f</span> <span class="ot">=</span> <span class="dv">0</span>
+      <span class="kw">dl_dx</span>:zero<span class="ot">()</span>
+ 
+      <span class="co">-- estimate f and gradients, for minibatch</span>
+      <span class="kw">for</span> <span class="kw">i</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">minibatchsize</span> <span class="kw">do</span>
+         <span class="co">-- f</span>
+         <span class="kw">f</span> <span class="ot">=</span> <span class="kw">f</span> <span class="ot">+</span> <span class="kw">module</span>:updateOutput<span class="ot">(</span><span class="kw">samples</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span>, <span class="kw">samples</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+ 
+         <span class="co">-- gradients</span>
+         <span class="kw">module</span>:updateGradInput<span class="ot">(</span><span class="kw">samples</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span>, <span class="kw">samples</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+         <span class="kw">module</span>:accGradParameters<span class="ot">(</span><span class="kw">samples</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span>, <span class="kw">samples</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+      <span class="kw">end</span>
+ 
+      <span class="co">-- normalize</span>
+      <span class="kw">dl_dx</span>:div<span class="ot">(</span><span class="kw">minibatchsize</span><span class="ot">)</span>
+      <span class="kw">f</span> <span class="ot">=</span> <span class="kw">f</span><span class="ot">/</span><span class="kw">minibatchsize</span>
+ 
+      <span class="co">-- return f and df/dx</span>
+      <span class="kw">return</span> <span class="kw">f</span>,<span class="kw">dl_dx</span>
+   <span class="kw">end</span>
+ 
+   <span class="co">-- do SGD step</span>
+   <span class="kw">optim</span><span class="ot">.</span>sgd<span class="ot">(</span><span class="kw">feval</span>, <span class="kw">x</span>, <span class="kw">sgdconf</span><span class="ot">)</span>
+ 
+<span class="kw">end</span></code></pre>
+<p>Ok, that's it, given some training data, this code will loop over all samples, and minimize the reconstruction error, using stochastic gradient descent.</p>
 <h2 id="step-3-second-order-information">Step 3: Second-order Information</h2>
+<p>Training PSD autoencoders, especially convolutional ones, is a particularly challenging optimization problem. This is due to the loss function, which contains particularly opposing terms. As a result, the encoder's weights usually get stuck with checker board patterns for a long time, before starting to properly minimize the cost function. To east the optimization a little bit, we can use second-order information, to condition each parameter individually.</p>
+<p>A simple way of doing that, which was proposed in (Lecun, 1987), is to compute an approximation of the diagonal terms of the Hessian, and adapt the learning rate of each parameter in the system proportionally to the inverse of the diagonal terms.</p>
+<p>Computing the diagonal terms is very analogous to computing the gradients themselves:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">if</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">hessian</span> <span class="kw">and</span> <span class="kw">math</span><span class="ot">.</span>fmod<span class="ot">(</span><span class="kw">t</span> , <span class="kw">params</span><span class="ot">.</span><span class="kw">hessianinterval</span><span class="ot">)</span> <span class="ot">==</span> <span class="dv">1</span> <span class="kw">then</span>
+  <span class="co">-- some extra vars:</span>
+  <span class="kw">local</span> <span class="kw">hessiansamples</span> <span class="ot">=</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">hessiansamples</span>
+  <span class="kw">local</span> <span class="kw">minhessian</span> <span class="ot">=</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">minhessian</span>
+  <span class="kw">local</span> <span class="kw">maxhessian</span> <span class="ot">=</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">maxhessian</span>
+  <span class="kw">local</span> <span class="kw">ddl_ddx_avg</span> <span class="ot">=</span> <span class="kw">ddl_ddx</span>:clone<span class="ot">(</span><span class="kw">ddl_ddx</span><span class="ot">)</span>:zero<span class="ot">()</span>
+  <span class="kw">etas</span> <span class="ot">=</span> <span class="kw">etas</span> <span class="kw">or</span> <span class="kw">ddl_ddx</span>:clone<span class="ot">()</span>
+
+  <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;==&gt; estimating diagonal hessian elements&#39;</span><span class="ot">)</span>
+  <span class="kw">for</span> <span class="kw">i</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">hessiansamples</span> <span class="kw">do</span>
+     <span class="co">-- next</span>
+     <span class="kw">local</span> <span class="kw">ex</span> <span class="ot">=</span> <span class="kw">dataset</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span>
+     <span class="kw">local</span> <span class="kw">input</span> <span class="ot">=</span> <span class="kw">ex</span><span class="ot">[</span><span class="dv">1</span><span class="ot">]</span>
+     <span class="kw">local</span> <span class="kw">target</span> <span class="ot">=</span> <span class="kw">ex</span><span class="ot">[</span><span class="dv">2</span><span class="ot">]</span>
+     <span class="kw">module</span>:updateOutput<span class="ot">(</span><span class="kw">input</span>, <span class="kw">target</span><span class="ot">)</span>
+
+     <span class="co">-- gradient</span>
+     <span class="kw">dl_dx</span>:zero<span class="ot">()</span>
+     <span class="kw">module</span>:updateGradInput<span class="ot">(</span><span class="kw">input</span>, <span class="kw">target</span><span class="ot">)</span>
+     <span class="kw">module</span>:accGradParameters<span class="ot">(</span><span class="kw">input</span>, <span class="kw">target</span><span class="ot">)</span>
+
+     <span class="co">-- hessian</span>
+     <span class="kw">ddl_ddx</span>:zero<span class="ot">()</span>
+     <span class="kw">module</span>:updateDiagHessianInput<span class="ot">(</span><span class="kw">input</span>, <span class="kw">target</span><span class="ot">)</span>
+     <span class="kw">module</span>:accDiagHessianParameters<span class="ot">(</span><span class="kw">input</span>, <span class="kw">target</span><span class="ot">)</span>
+
+     <span class="co">-- accumulate</span>
+     <span class="kw">ddl_ddx_avg</span>:add<span class="ot">(</span><span class="dv">1</span><span class="ot">/</span><span class="kw">hessiansamples</span>, <span class="kw">ddl_ddx</span><span class="ot">)</span>
+  <span class="kw">end</span>
+
+  <span class="co">-- cap hessian params</span>
+  <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;==&gt; ddl/ddx : min/max = &#39;</span> <span class="ot">..</span> <span class="kw">ddl_ddx_avg</span>:<span class="fu">min</span><span class="ot">()</span> <span class="ot">..</span> <span class="st">&#39;/&#39;</span> <span class="ot">..</span> <span class="kw">ddl_ddx_avg</span>:<span class="fu">max</span><span class="ot">())</span>
+  <span class="kw">ddl_ddx_avg</span><span class="ot">[</span><span class="kw">torch</span><span class="ot">.</span>lt<span class="ot">(</span><span class="kw">ddl_ddx_avg</span>,<span class="kw">minhessian</span><span class="ot">)]</span> <span class="ot">=</span> <span class="kw">minhessian</span>
+  <span class="kw">ddl_ddx_avg</span><span class="ot">[</span><span class="kw">torch</span><span class="ot">.</span>gt<span class="ot">(</span><span class="kw">ddl_ddx_avg</span>,<span class="kw">maxhessian</span><span class="ot">)]</span> <span class="ot">=</span> <span class="kw">maxhessian</span>
+  <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;==&gt; corrected ddl/ddx : min/max = &#39;</span> <span class="ot">..</span> <span class="kw">ddl_ddx_avg</span>:<span class="fu">min</span><span class="ot">()</span> <span class="ot">..</span> <span class="st">&#39;/&#39;</span> <span class="ot">..</span> <span class="kw">ddl_ddx_avg</span>:<span class="fu">max</span><span class="ot">())</span>
+
+  <span class="co">-- generate learning rates</span>
+  <span class="kw">etas</span>:fill<span class="ot">(</span><span class="dv">1</span><span class="ot">)</span>:cdiv<span class="ot">(</span><span class="kw">ddl_ddx_avg</span><span class="ot">)</span>
+<span class="kw">end</span></code></pre>
+<p>The result of this code is a vector <em>etas</em>, which contains a list of learning rates, one for each trainable parameter in the system. These <em>etas</em> can be re-estimated every once in a while, depending on the complexity of the model / data. They can then simply be passed to the SGD function, which will use them as individual learning rates:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">sgdconf</span> <span class="ot">=</span> <span class="kw">sgdconf</span> <span class="kw">or</span> <span class="ot">{</span><span class="kw">learningRate</span> <span class="ot">=</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">eta</span>,
+                      <span class="kw">learningRateDecay</span> <span class="ot">=</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">etadecay</span>,
+                      <span class="kw">learningRates</span> <span class="ot">=</span> <span class="kw">etas</span>,
+                      <span class="kw">momentum</span> <span class="ot">=</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">momentum</span><span class="ot">}</span>
+<span class="kw">_</span>,<span class="kw">fs</span> <span class="ot">=</span> <span class="kw">optim</span><span class="ot">.</span>sgd<span class="ot">(</span><span class="kw">feval</span>, <span class="kw">x</span>, <span class="kw">sgdconf</span><span class="ot">)</span></code></pre>
 <h2 id="some-results">Some Results</h2>
 <p>Here's a snapshot that shows PSD learning 256 encoder filters, after seeing 80,000 training patches (9x9), randomly sampled from the Berkeley dataset.</p>
 <p>Initial weights:</p>
 <div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/filters_00000.jpg" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/filters_00000.png" /><p class="caption"></p>
 </div>
 <p>At 40,000 samples:</p>
 <div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/filters_40000.jpg" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/filters_40000.png" /><p class="caption"></p>
 </div>
 <p>At 80,000 samples:</p>
 <div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/filters_80000.jpg" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/filters_80000.png" /><p class="caption"></p>
 </div>
+<p>Notice how the checker board effect is still present after 40,000 samples, but completely gone at the end.</p>

@@ -5,12 +5,31 @@
    <style>
       body {font-family:helvetica,arial; margin:auto; padding:0; width:600px;}
       a {color:#777;text-decoration:none;}
-      h1 {color:#777;}
+      h1 {color:#777;background:#eee;padding:10px;margin-top:0px;padding-top:20px;text-align:center;}
       h2 {color:#444;}
-      code {background:#eee;color:#222;}
+      pre {background:#eee;color:#222;width:100%;padding:10px;
+           overflow:scroll;border-style:solid;border-color:#ddd;border-width:4px;
+           -moz-border-radius: 15px; border-radius: 15px;}
    </style>
 </head>
 <body>
 <h1 id="unsupervised-learning">Unsupervised Learning</h1>
 <p>In this tutorial, we're going to learn how to define a model, and train it using an unsupervised approach, with the goal of learning good features/representation for classification tasks. Some of the material here is based on this <a href="http://torch.cogbits.com/doc/tutorials_unsupervised/">existing tutorial</a>.</p>
 <p>The tutorial demonstrates how to: * describe an unsupervised model * define a (multi-term) loss function to minimize * define a sampling procedure (stochastic, mini-batches), and apply one of several optimization techniques to train the model's parameters * use second-order information (diagonal of the hessian) to ease the optimization procedure</p>
+<h2 id="step-1-models-loss-functions">Step 1: Models &amp; Loss functions</h2>
+<h2 id="step-2-training">Step 2: Training</h2>
+<h2 id="step-3-second-order-information">Step 3: Second-order Information</h2>
+<h2 id="some-results">Some Results</h2>
+<p>Here's a snapshot that shows PSD learning 256 encoder filters, after seeing 80,000 training patches (9x9), randomly sampled from the Berkeley dataset.</p>
+<p>Initial weights:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/filters_00000.jpg" /><p class="caption"></p>
+</div>
+<p>At 40,000 samples:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/filters_40000.jpg" /><p class="caption"></p>
+</div>
+<p>At 80,000 samples:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/filters_80000.jpg" /><p class="caption"></p>
+</div>

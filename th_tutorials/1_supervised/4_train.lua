@@ -37,7 +37,7 @@ if not opt then
    cmd:option('-t0', 1, 'start averaging at t0 (ASGD only), in nb of epochs')
    cmd:option('-maxIter', 2, 'maximum nb of iterations for CG and LBFGS')
    cmd:text()
-   opt = cmd:parse(arg)
+   opt = cmd:parse(arg or {})
 end
 
 ----------------------------------------------------------------------

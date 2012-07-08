@@ -18,6 +18,15 @@ if params.model == 'linear' then
    decoder = nn.Sequential()
    decoder:add(nn.Linear(outputSize,inputSize))
 
+   -- tied weights
+   if params.tied and not params.hessian then
+      -- impose weight sharing
+      decoder:get(1).weight = encoder:get(1).weight:t()
+      decoder:get(1).gradWeight = encoder:get(1).gradWeight:t()
+   elseif params.tied then
+      print('==> WARNING: weight sharing only supported with no hessian computation')
+   end
+
    -- complete model
    module = unsup.AutoEncoder(encoder, decoder, params.beta)
 

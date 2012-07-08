@@ -29,7 +29,7 @@ if not opt then
    cmd:option('-model', 'convnet', 'type of model to construct: linear | mlp | convnet')
    cmd:option('-visualize', true, 'visualize input data and weights during training')
    cmd:text()
-   opt = cmd:parse(arg)
+   opt = cmd:parse(arg or {})
 end
 
 ----------------------------------------------------------------------

@@ -10,62 +10,72 @@ July 9 - 27, 2012
 
 * 5 mins rapid overview of how we're going to organize the practical
   sessions. What are our goals for students, what we're offering to show.
+  
+  * Schedule: 1 hour on four days this first week:
 
-* 10 mins crash course in Python, numpy, Theano
+    * Monday 12PM - 1PM: _Lua/Torch, Python/Theano, logging in to EC2_
+
+    * Tuesday 4PM - 5PM: _Supervised Learning in Lua and Python_
+
+    * Wednesday 4PM - 5PM: _Unsupervised Learning in Lua and Python_
+
+    * Thursday 4PM - 5PM: _TBA_
+
+* Time is short for these practical sessions
+
+  * Each day will start with two walk-throughs of things you can experiment with
+    (we'll try to be quick, to give you time afterward!)
+
+  * After the walk-throughs you can log in to an Amazon EC2 node where we've set
+    things up.
+
+  * For lack of time - you will have to choose whether to do the Lua thing or
+    the Python thing in the in-classroom time each day.
+
+      * We will negotiate with the organizers to leave the EC2 node up after the sessions
+      
+      * We will be around all week - feel free to ask questions any time!
+      
+      * We will be available by email after the first week.
+
+* 10 mins crash course in Python, numpy
+
+  * intro to IPython notebook
 
 * 10 mins crash course in Lua, Torch7
-  (will review very basic Lua and Torch concepts, to get people started)
-  (will also do some basic review of available ML packages, graphical models, and so on)
 
-* 15 min Getting people into groups and setting them up to run the sample code
+  * will review very basic Lua and Torch concepts, to get people started
+
+  * will also do some basic review of available ML packages, graphical models, and so on
+
+* Remaining time - getting people into groups and setting them up to run the sample code
   on laptop or EC2. Once they get it running, they can go for lunch or stick
   around and play with things.
 
 
 ## Day 2: Supervised Learning
 
-* Train a ConvNet on multiple datasets
+* Models: SVM, MLP, ConvNets, (Logistic Regression?)
 
-  * Q0. Loading/processing datasets is trivial. We have MNIST,
-        CIFAR, and Google House Numbers available. The latter
-        is the most exciting, because very few results are available
-        at this time (and is more computer visionny that MNIST)
+* Data Sets: MNIST, CIFAR, Google Street View House Numbers (SVHN).
+  SVHN is an interesting new data set - very few results are available at this time (and is more computer visionny that MNIST)
 
-  * Q1. SGD preconditioning (number of updates, batchsize)
-
-  * Q2. L-BFGS / ASGD optimization (number of updates, batchsize)
-        Possibly show that SGD (or ASGD) is still the best method to
-        obtain most general results when doing purely supervised learning
-
-  * Debugging techniques?
+* Optimization Methods: SGD, ASGD, L-BFGS; batch vs. mini-batch vs. online
 
 
-## Day 3: Greedy Feature Learning
+## Day 3: Feature Learning
 
-* Random, Imprinting, PCA, ZCA, K-Means, Autoencoder, RBM, Sparse coding, PSD Autoencoder (Torch)
+* Python: Imprinting, K-Means, Autoencoder, De-noising Autoencoder, RBM,
+  (Sparse Coding?)
 
-  * Design sample code to show how similar these algorithms are
-
-  * Vary the number of features?
-
-  * Classify them with SVM?
-
-  * Try to out-perform the supervised approach from Day 2.
+* Torch: PSD Autoencoder
 
 
-## Day 4: Model Selection
+## Day 4: To Be Decided...
 
-* Talk about parameterizing your experiments to work with a database (MongoDB)
-  and using Hyperparameter Optimization Algorithms (Grid, Random, TPE, GP,
-  SMAC).
+* Persitant Contrastive Divergence?
 
-* Open time for questions?
+* Theano?
 
-* Assignment idea - figuring out which hyper-parameters are important. In
-  prep - run the code from Day 2/3 for a while to produce a database of
-  results. How good is the best model? How much spread is there among the best
-  models? Is this a reliable max? What can you discern about the parameters
-  that worked?
-
-  Problem: this is a little too open-ended and un-motivating
+* Recurrent Neural Networks?
 

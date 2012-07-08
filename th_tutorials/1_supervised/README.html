@@ -5,15 +5,24 @@
    <style>
       body {font-family:helvetica,arial; margin:auto; padding:0; width:600px;}
       a {color:#777;text-decoration:none;}
-      h1 {color:#777;}
+      h1 {color:#777;background:#eee;padding:10px;margin-top:0px;padding-top:20px;text-align:center;}
       h2 {color:#444;}
-      code {background:#eee;color:#222;}
+      pre {background:#eee;color:#222;width:572px;padding:10px;
+           overflow:scroll;border-style:solid;border-color:#ddd;border-width:4px;
+           -moz-border-radius: 15px; border-radius: 15px;}
    </style>
 </head>
 <body>
 <h1 id="supervised-learning">Supervised Learning</h1>
 <p>In this tutorial, we're going to learn how to define a model, and train it using a supervised approach, to solve a multiclass classifaction task. Some of the material here is based on this <a href="http://torch.cogbits.com/doc/tutorials_supervised/">existing tutorial</a>.</p>
-<p>The tutorial demonstrates how to: * pre-process the (train and test) data, to facilitate learning * describe a model to solve a classificaiton task * choose a loss function to minimize * define a sampling procedure (stochastic, mini-batches), and apply one of several optimization techniques to train the model's parameters * estimate the model's performance on unseen (test) data</p>
+<p>The tutorial demonstrates how to:</p>
+<ul>
+<li>pre-process the (train and test) data, to facilitate learning</li>
+<li>describe a model to solve a classificaiton task</li>
+<li>choose a loss function to minimize</li>
+<li>define a sampling procedure (stochastic, mini-batches), and apply one of several optimization techniques to train the model's parameters</li>
+<li>estimate the model's performance on unseen (test) data</li>
+</ul>
 <p>Each of these 5 steps is accompanied by a script, present in this directory:</p>
 <ul>
 <li>1_data.lua</li>
@@ -36,12 +45,8 @@
 <li>73257 digits for training, 26032 digits for testing, and 531131 additional, somewhat less difficult samples, to use as extra training data</li>
 <li>Comes in two formats:
 <ul>
-<li><ol style="list-style-type: decimal">
 <li>Original images with character level bounding boxes.</li>
-</ol></li>
-<li><ol start="2" style="list-style-type: decimal">
 <li>MNIST-like 32-by-32 images centered around a single character (many of the images do contain some distractors at the sides).</li>
-</ol></li>
 </ul></li>
 </ul>
 <p>We will be using the second format. In terms of dimensionality:</p>
@@ -49,9 +54,418 @@
 <li>the inputs (images) are 3x32x32</li>
 <li>the outputs (targets) are 10-dimensional</li>
 </ul>
-<p>In this first section, we are going to preprocess the data to facilitate the training.</p>
+<p>In this first section, we are going to preprocess the data to facilitate training.</p>
+<p>The script provided automatically retrieves the dataset, all we have to do is load it:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- We load the dataset from disk, and re-arrange it to be compatible</span>
+<span class="co">-- with Torch&#39;s representation. Matlab uses a column-major representation,</span>
+<span class="co">-- Torch is row-major, so we just have to transpose the data.</span>
+
+<span class="co">-- Note: the data, in X, is 4-d: the 1st dim indexes the samples, the 2nd</span>
+<span class="co">-- dim indexes the color channels (RGB), and the last two dims index the</span>
+<span class="co">-- height and width of the samples.</span>
+
+<span class="kw">loaded</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>load<span class="ot">(</span><span class="kw">train_file</span>,<span class="st">&#39;ascii&#39;</span><span class="ot">)</span>
+<span class="kw">trainData</span> <span class="ot">=</span> <span class="ot">{</span>
+   <span class="kw">data</span> <span class="ot">=</span> <span class="kw">loaded</span><span class="ot">.</span><span class="kw">X</span>:transpose<span class="ot">(</span><span class="dv">3</span>,<span class="dv">4</span><span class="ot">)</span>,
+   <span class="kw">labels</span> <span class="ot">=</span> <span class="kw">loaded</span><span class="ot">.</span><span class="kw">y</span><span class="ot">[</span><span class="dv">1</span><span class="ot">]</span>,
+   <span class="kw">size</span> <span class="ot">=</span> <span class="kw">function</span><span class="ot">()</span> <span class="kw">return</span> <span class="ot">(#</span><span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">)[</span><span class="dv">1</span><span class="ot">]</span> <span class="kw">end</span>
+<span class="ot">}</span>
+
+<span class="kw">loaded</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>load<span class="ot">(</span><span class="kw">test_file</span>,<span class="st">&#39;ascii&#39;</span><span class="ot">)</span>
+<span class="kw">testData</span> <span class="ot">=</span> <span class="ot">{</span>
+   <span class="kw">data</span> <span class="ot">=</span> <span class="kw">loaded</span><span class="ot">.</span><span class="kw">X</span>:transpose<span class="ot">(</span><span class="dv">3</span>,<span class="dv">4</span><span class="ot">)</span>,
+   <span class="kw">labels</span> <span class="ot">=</span> <span class="kw">loaded</span><span class="ot">.</span><span class="kw">y</span><span class="ot">[</span><span class="dv">1</span><span class="ot">]</span>,
+   <span class="kw">size</span> <span class="ot">=</span> <span class="kw">function</span><span class="ot">()</span> <span class="kw">return</span> <span class="ot">(#</span><span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">)[</span><span class="dv">1</span><span class="ot">]</span> <span class="kw">end</span>
+<span class="ot">}</span></code></pre>
+<p>Preprocessing requires a floating point representation (the original data is stored on bytes). Types can be easily converted in Torch, in general by doing: dst = src:type('torch.TypeTensor'), where Type=='Float','Double','Byte','Int',... Shortcuts are provided for simplicity (float(),double(),cuda(),...):</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span>:float<span class="ot">()</span>
+<span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span> <span class="ot">=</span> <span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span>:float<span class="ot">()</span></code></pre>
+<p>We now preprocess the data. Preprocessing is crucial when applying pretty much any kind of machine learning algorithm.</p>
+<p>For natural images, we use several intuitive tricks:</p>
+<ul>
+<li>images are mapped into YUV space, to separate luminance information from color information</li>
+<li>the luminance channel (Y) is locally normalized, using a contrastive normalization operator: for each neighborhood, defined by a Gaussian kernel, the mean is suppressed, and the standard deviation is normalized to one.</li>
+<li>color channels are normalized globally, across the entire dataset; as a result, each color component has 0-mean and 1-norm across the dataset.</li>
+</ul>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- Convert all images to YUV</span>
+<span class="fu">print</span> <span class="st">&#39;==&gt; preprocessing data: colorspace RGB -&gt; YUV&#39;</span>
+<span class="kw">for</span> <span class="kw">i</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">trainData</span>:size<span class="ot">()</span> <span class="kw">do</span>
+   <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span> <span class="ot">=</span> <span class="kw">image</span><span class="ot">.</span>rgb2yuv<span class="ot">(</span><span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+<span class="kw">end</span>
+<span class="kw">for</span> <span class="kw">i</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">testData</span>:size<span class="ot">()</span> <span class="kw">do</span>
+   <span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span> <span class="ot">=</span> <span class="kw">image</span><span class="ot">.</span>rgb2yuv<span class="ot">(</span><span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+<span class="kw">end</span>
+
+<span class="co">-- Name channels for convenience</span>
+<span class="kw">channels</span> <span class="ot">=</span> <span class="ot">{</span><span class="st">&#39;y&#39;</span>,<span class="st">&#39;u&#39;</span>,<span class="st">&#39;v&#39;</span><span class="ot">}</span>
+
+<span class="co">-- Normalize each channel, and store mean/std</span>
+<span class="co">-- per channel. These values are important, as they are part of</span>
+<span class="co">-- the trainable parameters. At test time, test data will be normalized</span>
+<span class="co">-- using these values.</span>
+
+<span class="fu">print</span> <span class="st">&#39;==&gt; preprocessing data: normalize each feature (channel) globally&#39;</span>
+<span class="kw">mean</span> <span class="ot">=</span> <span class="ot">{}</span>
+<span class="kw">std</span> <span class="ot">=</span> <span class="ot">{}</span>
+<span class="kw">for</span> <span class="kw">i</span>,<span class="kw">channel</span> <span class="kw">in</span> <span class="fu">ipairs</span><span class="ot">(</span><span class="kw">channels</span><span class="ot">)</span> <span class="kw">do</span>
+   <span class="co">-- normalize each channel globally:</span>
+   <span class="kw">mean</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="kw">i</span>,<span class="ot">{}</span>,<span class="ot">{}</span> <span class="ot">}]</span>:mean<span class="ot">()</span>
+   <span class="kw">std</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="kw">i</span>,<span class="ot">{}</span>,<span class="ot">{}</span> <span class="ot">}]</span>:std<span class="ot">()</span>
+   <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="kw">i</span>,<span class="ot">{}</span>,<span class="ot">{}</span> <span class="ot">}]</span>:add<span class="ot">(-</span><span class="kw">mean</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+   <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="kw">i</span>,<span class="ot">{}</span>,<span class="ot">{}</span> <span class="ot">}]</span>:div<span class="ot">(-</span><span class="kw">std</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+<span class="kw">end</span>
+
+<span class="co">-- Normalize test data, using the training means/stds</span>
+<span class="kw">for</span> <span class="kw">i</span>,<span class="kw">channel</span> <span class="kw">in</span> <span class="fu">ipairs</span><span class="ot">(</span><span class="kw">channels</span><span class="ot">)</span> <span class="kw">do</span>
+   <span class="co">-- normalize each channel globally:</span>
+   <span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="kw">i</span>,<span class="ot">{}</span>,<span class="ot">{}</span> <span class="ot">}]</span>:add<span class="ot">(-</span><span class="kw">mean</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+   <span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="kw">i</span>,<span class="ot">{}</span>,<span class="ot">{}</span> <span class="ot">}]</span>:div<span class="ot">(-</span><span class="kw">std</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+<span class="kw">end</span>
+
+<span class="co">-- Local normalization</span>
+<span class="fu">print</span> <span class="st">&#39;==&gt; preprocessing data: normalize Y (luminance) channel locally&#39;</span>
+
+<span class="co">-- Define the normalization neighborhood:</span>
+<span class="kw">neighborhood</span> <span class="ot">=</span> <span class="kw">image</span><span class="ot">.</span>gaussian1D<span class="ot">(</span><span class="dv">7</span><span class="ot">)</span>
+
+<span class="co">-- Define our local normalization operator (It is an actual nn module, </span>
+<span class="co">-- which could be inserted into a trainable model):</span>
+<span class="kw">normalization</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>SpatialContrastiveNormalization<span class="ot">(</span><span class="dv">1</span>, <span class="kw">neighborhood</span><span class="ot">)</span>:float<span class="ot">()</span>
+
+<span class="co">-- Normalize all Y channels locally:</span>
+<span class="kw">for</span> <span class="kw">i</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">trainData</span>:size<span class="ot">()</span> <span class="kw">do</span>
+   <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="kw">i</span>,<span class="ot">{</span><span class="dv">1</span><span class="ot">}</span>,<span class="ot">{}</span>,<span class="ot">{}</span> <span class="ot">}]</span> <span class="ot">=</span> normalization<span class="ot">(</span><span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="kw">i</span>,<span class="ot">{</span><span class="dv">1</span><span class="ot">}</span>,<span class="ot">{}</span>,<span class="ot">{}</span> <span class="ot">}])</span>
+<span class="kw">end</span>
+<span class="kw">for</span> <span class="kw">i</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">testData</span>:size<span class="ot">()</span> <span class="kw">do</span>
+   <span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="kw">i</span>,<span class="ot">{</span><span class="dv">1</span><span class="ot">}</span>,<span class="ot">{}</span>,<span class="ot">{}</span> <span class="ot">}]</span> <span class="ot">=</span> normalization<span class="ot">(</span><span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="kw">i</span>,<span class="ot">{</span><span class="dv">1</span><span class="ot">}</span>,<span class="ot">{}</span>,<span class="ot">{}</span> <span class="ot">}])</span>
+<span class="kw">end</span></code></pre>
+<p>At this stage, it's good practice to verify that data is properly normalized:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">for</span> <span class="kw">i</span>,<span class="kw">channel</span> <span class="kw">in</span> <span class="fu">ipairs</span><span class="ot">(</span><span class="kw">channels</span><span class="ot">)</span> <span class="kw">do</span>
+   <span class="kw">trainMean</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="kw">i</span> <span class="ot">}]</span>:mean<span class="ot">()</span>
+   <span class="kw">trainStd</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="kw">i</span> <span class="ot">}]</span>:std<span class="ot">()</span>
+
+   <span class="kw">testMean</span> <span class="ot">=</span> <span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="kw">i</span> <span class="ot">}]</span>:mean<span class="ot">()</span>
+   <span class="kw">testStd</span> <span class="ot">=</span> <span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="kw">i</span> <span class="ot">}]</span>:std<span class="ot">()</span>
+
+   <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;training data, &#39;</span><span class="ot">..</span><span class="kw">channel</span><span class="ot">..</span><span class="st">&#39;-channel, mean: &#39;</span> <span class="ot">..</span> <span class="kw">trainMean</span><span class="ot">)</span>
+   <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;training data, &#39;</span><span class="ot">..</span><span class="kw">channel</span><span class="ot">..</span><span class="st">&#39;-channel, standard deviation: &#39;</span> <span class="ot">..</span> <span class="kw">trainStd</span><span class="ot">)</span>
+
+   <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;test data, &#39;</span><span class="ot">..</span><span class="kw">channel</span><span class="ot">..</span><span class="st">&#39;-channel, mean: &#39;</span> <span class="ot">..</span> <span class="kw">testMean</span><span class="ot">)</span>
+   <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;test data, &#39;</span><span class="ot">..</span><span class="kw">channel</span><span class="ot">..</span><span class="st">&#39;-channel, standard deviation: &#39;</span> <span class="ot">..</span> <span class="kw">testStd</span><span class="ot">)</span>
+<span class="kw">end</span></code></pre>
+<p>We can then get an idea of how the preprocessing transformed the data by displaying it:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- Visualization is quite easy, using image.display(). Check out:</span>
+<span class="co">-- help(image.display), for more info about options.</span>
+
+<span class="kw">first256Samples_y</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{</span><span class="dv">1</span>,<span class="dv">256</span><span class="ot">}</span>,<span class="dv">1</span> <span class="ot">}]</span>
+<span class="kw">first256Samples_u</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{</span><span class="dv">1</span>,<span class="dv">256</span><span class="ot">}</span>,<span class="dv">2</span> <span class="ot">}]</span>
+<span class="kw">first256Samples_v</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{</span><span class="dv">1</span>,<span class="dv">256</span><span class="ot">}</span>,<span class="dv">3</span> <span class="ot">}]</span>
+<span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">first256Samples_y</span>, <span class="kw">nrow</span><span class="ot">=</span><span class="dv">16</span>, <span class="kw">legend</span><span class="ot">=</span><span class="st">&#39;Some training examples: Y channel&#39;</span><span class="ot">}</span>
+<span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">first256Samples_u</span>, <span class="kw">nrow</span><span class="ot">=</span><span class="dv">16</span>, <span class="kw">legend</span><span class="ot">=</span><span class="st">&#39;Some training examples: U channel&#39;</span><span class="ot">}</span>
+<span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">first256Samples_v</span>, <span class="kw">nrow</span><span class="ot">=</span><span class="dv">16</span>, <span class="kw">legend</span><span class="ot">=</span><span class="st">&#39;Some training examples: V channel&#39;</span><span class="ot">}</span></code></pre>
+<p><img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/y-channel.png" /> <img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/u-channel.png" /> <img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/v-channel.png" /></p>
 <h2 id="step-2-model-definition">Step 2: Model Definition</h2>
-<p>We introduce several classical models: convolutional neural networks (CNNs, or ConvNets), multi-layer neural networks (MLPs), and simple logistic regression units.</p>
+<p>The code for this section is in <em>2_model.lua</em>. Run it like this:</p>
+<pre class="sourceCode bash"><code class="sourceCode bash">torch -i 2_model.lua -model linear
+torch -i 2_model.lua -model mlp
+torch -i 2_model.lua -model convnet</code></pre>
+<p>In this file, we describe three different models: convolutional neural networks (CNNs, or ConvNets), multi-layer neural networks (MLPs), and a simple linear model (which becomes a logistic regression if used with a negative log-likelihood loss).</p>
+<p>Linear regression is the simplest type of model. It is parametrized by a weight matrix W, and a bias vector b. Mathematically, it can be written as:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/linear_regression.png" /><p class="caption"></p>
+</div>
+<p>Using the <em>nn</em> package, describing ConvNets, MLPs and other forms of sequential trainable models is really easy. All we have to do is create a top-level wrapper, which, as for the logistic regression, is going to be a sequential module, and then append modules into it. Implementing a simple linear model is therefore trivial:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">model</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Reshape<span class="ot">(</span><span class="kw">ninputs</span><span class="ot">))</span>
+<span class="kw">model</span>:add<span class="ot">(</span> <span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">ninputs</span>, <span class="kw">noutputs</span><span class="ot">)</span> <span class="ot">)</span></code></pre>
+<p>A slightly more complicated model is the multi-layer neural network (MLP). This model is parametrized by two weight matrices, and two bias vectors:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/mlp_regression.png" /><p class="caption"></p>
+</div>
+<p>where the function <em>sigmoid</em> is typically the symmetric hyperbolic tangent function. Again, in Torch:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">model</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Reshape<span class="ot">(</span><span class="kw">ninputs</span><span class="ot">))</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">ninputs</span>,<span class="kw">nhiddens</span><span class="ot">))</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Tanh<span class="ot">())</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">nhiddens</span>,<span class="kw">noutputs</span><span class="ot">))</span></code></pre>
+<p>Compared to the linear regression model, the 2-layer neural network can learn arbitrary non-linear mappings between its inputs and outputs. In practice, it can be quite hard to train fully-connected MLPs to classify natural images.</p>
+<p>Convolutional Networks are a particular form of MLP, which was tailored to efficiently learn to classify images. Convolutional Networks are trainable architectures composed of multiple stages. The input and output of each stage are sets of arrays called feature maps. For example, if the input is a color image, each feature map would be a 2D array containing a color channel of the input image (for an audio input each feature map would be a 1D array, and for a video or volumetric image, it would be a 3D array). At the output, each feature map represents a particular feature extracted at all locations on the input. Each stage is composed of three layers: a filter bank layer, a non-linearity layer, and a feature pooling layer. A typical ConvNet is composed of one, two or three such 3-layer stages, followed by a classification module. Each layer type is now described for the case of image recognition.</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/convnet.png" /><p class="caption"></p>
+</div>
+<p>Trainable hierarchical vision models, and more generally image processing algorithms are usually expressed as sequences of operations or transformations. They can be well described by a modular approach, in which each module processes an input image bank and produces a new bank. The figure above is a nice graphical illustration of this approach. Each module requires the previous bank to be fully (or at least partially) available before computing its output. This causality prevents simple parallelism to be implemented across modules. However parallelism can easily be introduced within a module, and at several levels, depending on the kind of underlying operations. These forms of parallelism are exploited in Torch7.</p>
+<p>Typical ConvNets rely on a few basic modules:</p>
+<ul>
+<li><p>Filter bank layer: the input is a 3D array with n1 2D feature maps of size n2 x n3. Each component is denoted x_ijk, and each feature map is denoted xi. The output is also a 3D array, y composed of m1 feature maps of size m2 x m3. A trainable filter (kernel) k_ij in the filter bank has size l1 x l2 and connects input feature map x to output feature map y_j. The module computes y_j = b_j + i_{kij} * x_i where * is the 2D discrete convolution operator and b_j is a trainable bias parameter. Each filter detects a particular feature at every location on the input. Hence spatially translating the input of a feature detection layer will translate the output but leave it otherwise unchanged.</p></li>
+<li><p>Non-Linearity Layer: In traditional ConvNets this simply consists in a pointwise tanh() sigmoid function applied to each site (ijk). However, recent implementations have used more sophisticated non-linearities. A useful one for natural image recognition is the rectified sigmoid Rabs: abs(g_i.tanh()) where g_i is a trainable gain parameter. The rectified sigmoid is sometimes followed by a subtractive and divisive local normalization N, which enforces local competition between adjacent features in a feature map, and between features at the same spatial location.</p></li>
+<li><p>Feature Pooling Layer: This layer treats each feature map separately. In its simplest instance, it computes the average values over a neighborhood in each feature map. Recent work has shown that more selective poolings, based on the LP-norm, tend to work best, with P=2, or P=inf (also known as max pooling). The neighborhoods are stepped by a stride larger than 1 (but smaller than or equal the pooling neighborhood). This results in a reduced-resolution output feature map which is robust to small variations in the location of features in the previous layer. The average operation is sometimes replaced by a max PM. Traditional ConvNets use a pointwise tanh() after the pooling layer, but more recent models do not. Some ConvNets dispense with the separate pooling layer entirely, but use strides larger than one in the filter bank layer to reduce the resolution. In some recent versions of ConvNets, the pooling also pools similar feature at the same location, in addition to the same feature at nearby locations.</p></li>
+</ul>
+<p>Here is an example of ConvNet that we will use in this tutorial:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- parameters</span>
+<span class="kw">nstates</span> <span class="ot">=</span> <span class="ot">{</span><span class="dv">16</span>,<span class="dv">256</span>,<span class="dv">128</span><span class="ot">}</span>
+<span class="kw">fanin</span> <span class="ot">=</span> <span class="ot">{</span><span class="dv">1</span>,<span class="dv">4</span><span class="ot">}</span>
+<span class="kw">filtsize</span> <span class="ot">=</span> <span class="dv">5</span>
+<span class="kw">poolsize</span> <span class="ot">=</span> <span class="dv">2</span>
+<span class="kw">normkernel</span> <span class="ot">=</span> <span class="kw">image</span><span class="ot">.</span>gaussian1D<span class="ot">(</span><span class="dv">7</span><span class="ot">)</span>
+
+<span class="co">-- Container:</span>
+<span class="kw">model</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
+
+<span class="co">-- stage 1 : filter bank -&gt; squashing -&gt; L2 pooling -&gt; normalization</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>SpatialConvolutionMap<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span><span class="kw">tables</span><span class="ot">.</span>random<span class="ot">(</span><span class="kw">nfeats</span>, <span class="kw">nstates</span><span class="ot">[</span><span class="dv">1</span><span class="ot">]</span>, <span class="kw">fanin</span><span class="ot">[</span><span class="dv">1</span><span class="ot">])</span>, <span class="kw">filtsize</span>, <span class="kw">filtsize</span><span class="ot">))</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Tanh<span class="ot">())</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>SpatialLPPooling<span class="ot">(</span><span class="kw">nstates</span><span class="ot">[</span><span class="dv">1</span><span class="ot">]</span>,<span class="dv">2</span>,<span class="kw">poolsize</span>,<span class="kw">poolsize</span>,<span class="kw">poolsize</span>,<span class="kw">poolsize</span><span class="ot">))</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>SpatialSubtractiveNormalization<span class="ot">(</span><span class="dv">16</span>, <span class="kw">normkernel</span><span class="ot">))</span>
+
+<span class="co">-- stage 2 : filter bank -&gt; squashing -&gt; L2 pooling -&gt; normalization</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>SpatialConvolutionMap<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span><span class="kw">tables</span><span class="ot">.</span>random<span class="ot">(</span><span class="kw">nstates</span><span class="ot">[</span><span class="dv">1</span><span class="ot">]</span>, <span class="kw">nstates</span><span class="ot">[</span><span class="dv">2</span><span class="ot">]</span>, <span class="kw">fanin</span><span class="ot">[</span><span class="dv">2</span><span class="ot">])</span>, <span class="kw">filtsize</span>, <span class="kw">filtsize</span><span class="ot">))</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Tanh<span class="ot">())</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>SpatialLPPooling<span class="ot">(</span><span class="kw">nstates</span><span class="ot">[</span><span class="dv">2</span><span class="ot">]</span>,<span class="dv">2</span>,<span class="kw">poolsize</span>,<span class="kw">poolsize</span>,<span class="kw">poolsize</span>,<span class="kw">poolsize</span><span class="ot">))</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>SpatialSubtractiveNormalization<span class="ot">(</span><span class="kw">nstates</span><span class="ot">[</span><span class="dv">2</span><span class="ot">]</span>, <span class="kw">normkernel</span><span class="ot">))</span>
+
+<span class="co">-- stage 3 : standard 2-layer neural network</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Reshape<span class="ot">(</span><span class="kw">nstates</span><span class="ot">[</span><span class="dv">2</span><span class="ot">]*</span><span class="kw">filtsize</span><span class="ot">*</span><span class="kw">filtsize</span><span class="ot">))</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">nstates</span><span class="ot">[</span><span class="dv">2</span><span class="ot">]*</span><span class="kw">filtsize</span><span class="ot">*</span><span class="kw">filtsize</span>, <span class="kw">nstates</span><span class="ot">[</span><span class="dv">3</span><span class="ot">]))</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Tanh<span class="ot">())</span>
+<span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">nstates</span><span class="ot">[</span><span class="dv">3</span><span class="ot">]</span>, <span class="kw">noutputs</span><span class="ot">))</span></code></pre>
+<p>A couple of comments about this model:</p>
+<ul>
+<li><p>the input has 3 feature maps, each 32x32 pixels. It is the convention for all nn.Spatial* layers to work on 3D arrays, with the first dimension indexing different features (here normalized YUV), and the next two dimensions indexing the height and width of the image/map.</p></li>
+<li><p>the fist layer applies 16 filters to the input map, each being 5x5. The receptive field of this first layer is 5x5, and the maps produced by it are therefore 16x28x28. This linear transform is then followed by a non-linearity (tanh), and an L2-pooling function, which pools regions of size 2x2, and uses a stride of 2x2. The result of that operation is a 16x14x14 array, which represents a 14x14 map of 16-dimensional feature vectors. The receptive field of each unit at this stage is 7x7.</p></li>
+<li><p>the second layer is very much analogous to the first, except that now the 16-dim feature maps are projected into 256-dim maps, with a fully-connected connection table: each unit in the output array is influenced by a 4x5x5 neighborhood of features in the previous layer. That layer has therefore 4x256x5x5 trainable kernel weights (and 256 biases). The result of the complete layer (conv+pooling) is a 256x5x5 array.</p></li>
+<li><p>at this stage, the 5x5 array of 256-dimensional feature vectors is flattened into a 6400-dimensional vector, which we feed to a two-layer neural net. The final prediction (10-dimensional distribution over classes) is influenced by a 32x32 neighborhood of input variables (YUV pixels).</p></li>
+<li><p>recent work (Jarret et al.) has demonstrated the advantage of locally normalizing sets of internal features, at each stage of the model. The use of smoother pooling functions, such as the L2 norm for instance instead of the harsher max-pooling, has also been shown to yield better generalization (Sermanet et al.). We use these two ingredients in this model.</p></li>
+<li><p>one other remark: it is typically not a good idea to use fully connected layers, in internal layers. In general, favoring large numbers of features (over-completeness) over density of connections helps achieve better results (empirical evidence of this was reported in several papers, as in Hadsell et al.). The SpatialConvolutionMap module accepts tables of connectivities (maps) that allows one to create arbitrarily sparse connections between two layers. A couple of standard maps/tables are provided in nn.tables.</p></li>
+</ul>
 <h2 id="step-3-loss-function">Step 3: Loss Function</h2>
+<p>Now that we have a model, we need to define a loss function to be minimized, across the entire training set:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/loss.png" /><p class="caption"></p>
+</div>
+<p>One of the simplest loss functions we can minimize is the mean-square error between the predictions (outputs of the model), and the groundtruth labels, across the entire dataset:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/mse_loss.png" /><p class="caption"></p>
+</div>
+<p>or, in Torch:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">criterion</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>MSECriterion<span class="ot">()</span></code></pre>
+<p>The MSE loss is typically not a good one for classification, as it forces the model to exactly predict the values imposed by the targets (labels).</p>
+<p>Instead, a more commonly used, probabilistic objective is the negative log-likelihood. To minimize a negative log-likelihood, we first need to turn the predictions of our models into properly normalized log-probabilities. For the linear model, this is achieved by feeding the output units into a <em>softmax</em> function, which turns the linear regression into a logistic regression:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/logistic_regression.png" /><p class="caption"></p>
+</div>
+<p>As we're interested in classification, the final prediction is then achieved by taking the argmax of this distribution:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/logistic_argmax.png" /><p class="caption"></p>
+</div>
+<p>in which case the ouput y is a scalar.</p>
+<p>More generally, the output of any model can be turned into normalized log-probabilities, by stacking a <em>softmax</em> function on top. So given any of the models defined above, we can simply do:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">model</span>:add<span class="ot">(</span> <span class="kw">nn</span><span class="ot">.</span>LogSoftMax<span class="ot">()</span> <span class="ot">)</span></code></pre>
+<p>We want to maximize the likelihood of the correct (target) class, for each sample in the dataset. This is equivalent to minimizing the negative log-likelihood (NLL), or minimizing the cross-entropy between the predictions of our model and the targets (training data). Mathematically, the per-sample loss can be defined as:</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/nll_loss.png" /><p class="caption"></p>
+</div>
+<p>Given that our model already produces log-probabilities (thanks to the <em>softmax</em>), the loss is quite straightforward to estimate. In Torch, we use the <em>ClassNLLCriterion</em>, which expects its input as being a vector of log-probabilities, and the target as being an integer pointing to the correct class:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">criterion</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>ClassNLLCriterion<span class="ot">()</span></code></pre>
+<p>Finally, another type of classification loss is the multi-class margin loss, which is closer to the SVM loss. That loss function can be implemented like this:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">criterion</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>MultiMarginCriterion<span class="ot">()</span></code></pre>
 <h2 id="step-4-training-procedure">Step 4: Training Procedure</h2>
+<p>We now have some training data, a model to train, and a loss function to minimize. We define a training procedure, which you will find in this file: <em>4_train.lua</em>.</p>
+<p>A very important aspect about supervised training of non-linear models (ConvNets and MLPs) is the fact that the optimization problem is not convex anymore. This reinforces the need for a stochastic estimation of gradients, which have shown to produce much better generalization results for several problems.</p>
+<p>In this example, we show how the optimization algorithm can be easily set to either L-BFGS, CG, SGD or ASGD. In practice, it's very important to start with a few epochs of pure SGD, before switching to L-BFGS or ASGD (if switching at all). The intuition for that is related to the non-convex nature of the problem: at the very beginning of training (random initialization), the landscape might be highly non-convex, and no assumption should be made about the shape of the energy function. Often, SGD is the best we can do. Later on, batch methods (L-BFGS, CG) can be used more safely.</p>
+<p>Here is our full training function, which demonstrates that you can switch the optimization you're using at runtime (if you want to), and also modify the batch size you're using at run time. You can do all these things because we create the evaluation closure each time we create a new batch. If the batch size is 1, then the method is purely stochastic. If the batch size is set to the complete dataset, then the method is a pure batch method.</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- classes</span>
+<span class="kw">classes</span> <span class="ot">=</span> <span class="ot">{</span><span class="st">&#39;1&#39;</span>,<span class="st">&#39;2&#39;</span>,<span class="st">&#39;3&#39;</span>,<span class="st">&#39;4&#39;</span>,<span class="st">&#39;5&#39;</span>,<span class="st">&#39;6&#39;</span>,<span class="st">&#39;7&#39;</span>,<span class="st">&#39;8&#39;</span>,<span class="st">&#39;9&#39;</span>,<span class="st">&#39;0&#39;</span><span class="ot">}</span>
+
+<span class="co">-- This matrix records the current confusion across classes</span>
+<span class="kw">confusion</span> <span class="ot">=</span> <span class="kw">optim</span><span class="ot">.</span>ConfusionMatrix<span class="ot">(</span><span class="kw">classes</span><span class="ot">)</span>
+
+<span class="co">-- Log results to files</span>
+<span class="kw">trainLogger</span> <span class="ot">=</span> <span class="kw">optim</span><span class="ot">.</span>Logger<span class="ot">(</span><span class="kw">paths</span><span class="ot">.</span>concat<span class="ot">(</span><span class="kw">opt</span><span class="ot">.</span><span class="kw">save</span>, <span class="st">&#39;train.log&#39;</span><span class="ot">))</span>
+<span class="kw">testLogger</span> <span class="ot">=</span> <span class="kw">optim</span><span class="ot">.</span>Logger<span class="ot">(</span><span class="kw">paths</span><span class="ot">.</span>concat<span class="ot">(</span><span class="kw">opt</span><span class="ot">.</span><span class="kw">save</span>, <span class="st">&#39;test.log&#39;</span><span class="ot">))</span>
+
+<span class="co">-- Retrieve parameters and gradients:</span>
+<span class="co">-- this extracts and flattens all the trainable parameters of the mode</span>
+<span class="co">-- into a 1-dim vector</span>
+<span class="kw">if</span> <span class="kw">model</span> <span class="kw">then</span>
+   <span class="kw">parameters</span>,<span class="kw">gradParameters</span> <span class="ot">=</span> <span class="kw">model</span>:getParameters<span class="ot">()</span>
+<span class="kw">end</span>
+
+<span class="co">-- Training function</span>
+<span class="kw">function</span> train<span class="ot">()</span>
+
+   <span class="co">-- epoch tracker</span>
+   <span class="kw">epoch</span> <span class="ot">=</span> <span class="kw">epoch</span> <span class="kw">or</span> <span class="dv">1</span>
+
+   <span class="co">-- local vars</span>
+   <span class="kw">local</span> <span class="kw">time</span> <span class="ot">=</span> <span class="kw">sys</span><span class="ot">.</span>clock<span class="ot">()</span>
+
+   <span class="co">-- shuffle at each epoch</span>
+   <span class="kw">shuffle</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>randperm<span class="ot">(</span><span class="kw">trsize</span><span class="ot">)</span>
+
+   <span class="co">-- do one epoch</span>
+   <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;==&gt; doing epoch on training data:&#39;</span><span class="ot">)</span>
+   <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;==&gt; online epoch # &quot;</span> <span class="ot">..</span> <span class="kw">epoch</span> <span class="ot">..</span> <span class="st">&#39; [batchSize = &#39;</span> <span class="ot">..</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">batchSize</span> <span class="ot">..</span> <span class="st">&#39;]&#39;</span><span class="ot">)</span>
+   <span class="kw">for</span> <span class="kw">t</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">trainData</span>:size<span class="ot">()</span>,<span class="kw">opt</span><span class="ot">.</span><span class="kw">batchSize</span> <span class="kw">do</span>
+      <span class="co">-- disp progress</span>
+      <span class="kw">xlua</span><span class="ot">.</span>progress<span class="ot">(</span><span class="kw">t</span>, <span class="kw">trainData</span>:size<span class="ot">())</span>
+
+      <span class="co">-- create mini batch</span>
+      <span class="kw">local</span> <span class="kw">inputs</span> <span class="ot">=</span> <span class="ot">{}</span>
+      <span class="kw">local</span> <span class="kw">targets</span> <span class="ot">=</span> <span class="ot">{}</span>
+      <span class="kw">for</span> <span class="kw">i</span> <span class="ot">=</span> <span class="kw">t</span>,<span class="fu">math.min</span><span class="ot">(</span><span class="kw">t</span><span class="ot">+</span><span class="kw">opt</span><span class="ot">.</span><span class="kw">batchSize</span><span class="ot">-</span><span class="dv">1</span>,<span class="kw">trainData</span>:size<span class="ot">())</span> <span class="kw">do</span>
+         <span class="co">-- load new sample</span>
+         <span class="kw">local</span> <span class="kw">input</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[</span><span class="kw">shuffle</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]]</span>:double<span class="ot">()</span>
+         <span class="kw">local</span> <span class="kw">target</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">labels</span><span class="ot">[</span><span class="kw">shuffle</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]]</span>
+         <span class="fu">table.insert</span><span class="ot">(</span><span class="kw">inputs</span>, <span class="kw">input</span><span class="ot">)</span>
+         <span class="fu">table.insert</span><span class="ot">(</span><span class="kw">targets</span>, <span class="kw">target</span><span class="ot">)</span>
+      <span class="kw">end</span>
+
+      <span class="co">-- create closure to evaluate f(X) and df/dX</span>
+      <span class="kw">local</span> <span class="kw">feval</span> <span class="ot">=</span> <span class="kw">function</span><span class="ot">(</span><span class="kw">x</span><span class="ot">)</span>
+                       <span class="co">-- get new parameters</span>
+                       <span class="kw">if</span> <span class="kw">x</span> <span class="ot">~=</span> <span class="kw">parameters</span> <span class="kw">then</span>
+                          <span class="kw">parameters</span>:copy<span class="ot">(</span><span class="kw">x</span><span class="ot">)</span>
+                       <span class="kw">end</span>
+
+                       <span class="co">-- reset gradients</span>
+                       <span class="kw">gradParameters</span>:zero<span class="ot">()</span>
+
+                       <span class="co">-- f is the average of all criterions</span>
+                       <span class="kw">local</span> <span class="kw">f</span> <span class="ot">=</span> <span class="dv">0</span>
+
+                       <span class="co">-- evaluate function for complete mini batch</span>
+                       <span class="kw">for</span> <span class="kw">i</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="ot">#</span><span class="kw">inputs</span> <span class="kw">do</span>
+                          <span class="co">-- estimate f</span>
+                          <span class="kw">local</span> <span class="kw">output</span> <span class="ot">=</span> <span class="kw">model</span>:forward<span class="ot">(</span><span class="kw">inputs</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+                          <span class="kw">local</span> <span class="kw">err</span> <span class="ot">=</span> <span class="kw">criterion</span>:forward<span class="ot">(</span><span class="kw">output</span>, <span class="kw">targets</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+                          <span class="kw">f</span> <span class="ot">=</span> <span class="kw">f</span> <span class="ot">+</span> <span class="kw">err</span>
+
+                          <span class="co">-- estimate df/dW</span>
+                          <span class="kw">local</span> <span class="kw">df_do</span> <span class="ot">=</span> <span class="kw">criterion</span>:backward<span class="ot">(</span><span class="kw">output</span>, <span class="kw">targets</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+                          <span class="kw">model</span>:backward<span class="ot">(</span><span class="kw">inputs</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span>, <span class="kw">df_do</span><span class="ot">)</span>
+
+                          <span class="co">-- update confusion</span>
+                          <span class="kw">confusion</span>:add<span class="ot">(</span><span class="kw">output</span>, <span class="kw">targets</span><span class="ot">[</span><span class="kw">i</span><span class="ot">])</span>
+                       <span class="kw">end</span>
+
+                       <span class="co">-- normalize gradients and f(X)</span>
+                       <span class="kw">gradParameters</span>:div<span class="ot">(#</span><span class="kw">inputs</span><span class="ot">)</span>
+                       <span class="kw">f</span> <span class="ot">=</span> <span class="kw">f</span><span class="ot">/#</span><span class="kw">inputs</span>
+
+                       <span class="co">-- return f and df/dX</span>
+                       <span class="kw">return</span> <span class="kw">f</span>,<span class="kw">gradParameters</span>
+                    <span class="kw">end</span>
+
+      <span class="co">-- optimize on current mini-batch</span>
+      <span class="kw">if</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">optimization</span> <span class="ot">==</span> <span class="st">&#39;CG&#39;</span> <span class="kw">then</span>
+         <span class="kw">config</span> <span class="ot">=</span> <span class="kw">config</span> <span class="kw">or</span> <span class="ot">{</span><span class="kw">maxIter</span> <span class="ot">=</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">maxIter</span><span class="ot">}</span>
+         <span class="kw">optim</span><span class="ot">.</span>cg<span class="ot">(</span><span class="kw">feval</span>, <span class="kw">parameters</span>, <span class="kw">config</span><span class="ot">)</span>
+
+      <span class="kw">elseif</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">optimization</span> <span class="ot">==</span> <span class="st">&#39;LBFGS&#39;</span> <span class="kw">then</span>
+         <span class="kw">config</span> <span class="ot">=</span> <span class="kw">config</span> <span class="kw">or</span> <span class="ot">{</span><span class="kw">learningRate</span> <span class="ot">=</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">learningRate</span>,
+                             <span class="kw">maxIter</span> <span class="ot">=</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">maxIter</span>,
+                             <span class="kw">nCorrection</span> <span class="ot">=</span> <span class="dv">10</span><span class="ot">}</span>
+         <span class="kw">optim</span><span class="ot">.</span>lbfgs<span class="ot">(</span><span class="kw">feval</span>, <span class="kw">parameters</span>, <span class="kw">config</span><span class="ot">)</span>
+
+      <span class="kw">elseif</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">optimization</span> <span class="ot">==</span> <span class="st">&#39;SGD&#39;</span> <span class="kw">then</span>
+         <span class="kw">config</span> <span class="ot">=</span> <span class="kw">config</span> <span class="kw">or</span> <span class="ot">{</span><span class="kw">learningRate</span> <span class="ot">=</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">learningRate</span>,
+                             <span class="kw">weightDecay</span> <span class="ot">=</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">weightDecay</span>,
+                             <span class="kw">momentum</span> <span class="ot">=</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">momentum</span>,
+                             <span class="kw">learningRateDecay</span> <span class="ot">=</span> <span class="dv">5e-7</span><span class="ot">}</span>
+         <span class="kw">optim</span><span class="ot">.</span>sgd<span class="ot">(</span><span class="kw">feval</span>, <span class="kw">parameters</span>, <span class="kw">config</span><span class="ot">)</span>
+
+      <span class="kw">elseif</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">optimization</span> <span class="ot">==</span> <span class="st">&#39;ASGD&#39;</span> <span class="kw">then</span>
+         <span class="kw">config</span> <span class="ot">=</span> <span class="kw">config</span> <span class="kw">or</span> <span class="ot">{</span><span class="kw">eta0</span> <span class="ot">=</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">learningRate</span>,
+                             <span class="kw">t0</span> <span class="ot">=</span> <span class="kw">trsize</span> <span class="ot">*</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">t0</span><span class="ot">}</span>
+         <span class="kw">_</span>,<span class="kw">_</span>,<span class="kw">average</span> <span class="ot">=</span> <span class="kw">optim</span><span class="ot">.</span>asgd<span class="ot">(</span><span class="kw">feval</span>, <span class="kw">parameters</span>, <span class="kw">config</span><span class="ot">)</span>
+
+      <span class="kw">else</span>
+         <span class="fu">error</span><span class="ot">(</span><span class="st">&#39;unknown optimization method&#39;</span><span class="ot">)</span>
+      <span class="kw">end</span>
+   <span class="kw">end</span>
+
+   <span class="co">-- time taken</span>
+   <span class="kw">time</span> <span class="ot">=</span> <span class="kw">sys</span><span class="ot">.</span>clock<span class="ot">()</span> <span class="ot">-</span> <span class="kw">time</span>
+   <span class="kw">time</span> <span class="ot">=</span> <span class="kw">time</span> <span class="ot">/</span> <span class="kw">trainData</span>:size<span class="ot">()</span>
+   <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;==&gt; time to learn 1 sample = &quot;</span> <span class="ot">..</span> <span class="ot">(</span><span class="kw">time</span><span class="ot">*</span><span class="dv">1000</span><span class="ot">)</span> <span class="ot">..</span> <span class="st">&#39;ms&#39;</span><span class="ot">)</span>
+
+   <span class="co">-- print confusion matrix</span>
+   <span class="fu">print</span><span class="ot">(</span><span class="kw">confusion</span><span class="ot">)</span>
+   <span class="kw">confusion</span>:zero<span class="ot">()</span>
+
+   <span class="co">-- update logger/plot</span>
+   <span class="kw">trainLogger</span>:add<span class="ot">{[</span><span class="st">&#39;% mean class accuracy (train set)&#39;</span><span class="ot">]</span> <span class="ot">=</span> <span class="kw">confusion</span><span class="ot">.</span><span class="kw">totalValid</span> <span class="ot">*</span> <span class="dv">100</span><span class="ot">}</span>
+   <span class="kw">if</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">plot</span> <span class="kw">then</span>
+      <span class="kw">trainLogger</span>:style<span class="ot">{[</span><span class="st">&#39;% mean class accuracy (train set)&#39;</span><span class="ot">]</span> <span class="ot">=</span> <span class="st">&#39;-&#39;</span><span class="ot">}</span>
+      <span class="kw">trainLogger</span>:plot<span class="ot">()</span>
+   <span class="kw">end</span>
+
+   <span class="co">-- save/log current net</span>
+   <span class="kw">local</span> <span class="kw">filename</span> <span class="ot">=</span> <span class="kw">paths</span><span class="ot">.</span>concat<span class="ot">(</span><span class="kw">opt</span><span class="ot">.</span><span class="kw">save</span>, <span class="st">&#39;model.net&#39;</span><span class="ot">)</span>
+   <span class="fu">os.execute</span><span class="ot">(</span><span class="st">&#39;mkdir -p &#39;</span> <span class="ot">..</span> <span class="kw">sys</span><span class="ot">.</span>dirname<span class="ot">(</span><span class="kw">filename</span><span class="ot">))</span>
+   <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;==&gt; saving model to &#39;</span><span class="ot">..</span><span class="kw">filename</span><span class="ot">)</span>
+   <span class="kw">torch</span><span class="ot">.</span>save<span class="ot">(</span><span class="kw">filename</span>, <span class="kw">model</span><span class="ot">)</span>
+
+   <span class="co">-- next epoch</span>
+   <span class="kw">epoch</span> <span class="ot">=</span> <span class="kw">epoch</span> <span class="ot">+</span> <span class="dv">1</span>
+<span class="kw">end</span></code></pre>
+<p>We could then run the training procedure like this:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">while</span> <span class="kw">true</span>
+   train<span class="ot">()</span>
+<span class="kw">end</span></code></pre>
 <h2 id="step-5-test-the-model">Step 5: Test the Model</h2>
+<p>A common thing to do is to test the model's performance while we train it. Usually, this test is done on a subset of the training data, that is kept for cross-validation. Here we simply define the test procedure on the available test set:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> test<span class="ot">()</span>
+   <span class="co">-- local vars</span>
+   <span class="kw">local</span> <span class="kw">time</span> <span class="ot">=</span> <span class="kw">sys</span><span class="ot">.</span>clock<span class="ot">()</span>
+
+   <span class="co">-- averaged param use?</span>
+   <span class="kw">if</span> <span class="kw">average</span> <span class="kw">then</span>
+      <span class="kw">cachedparams</span> <span class="ot">=</span> <span class="kw">parameters</span>:clone<span class="ot">()</span>
+      <span class="kw">parameters</span>:copy<span class="ot">(</span><span class="kw">average</span><span class="ot">)</span>
+   <span class="kw">end</span>
+
+   <span class="co">-- test over test data</span>
+   <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;==&gt; testing on test set:&#39;</span><span class="ot">)</span>
+   <span class="kw">for</span> <span class="kw">t</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">testData</span>:size<span class="ot">()</span> <span class="kw">do</span>
+      <span class="co">-- disp progress</span>
+      <span class="kw">xlua</span><span class="ot">.</span>progress<span class="ot">(</span><span class="kw">t</span>, <span class="kw">testData</span>:size<span class="ot">())</span>
+
+      <span class="co">-- get new sample</span>
+      <span class="kw">local</span> <span class="kw">input</span> <span class="ot">=</span> <span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[</span><span class="kw">t</span><span class="ot">]</span>:double<span class="ot">()</span>
+      <span class="kw">local</span> <span class="kw">target</span> <span class="ot">=</span> <span class="kw">testData</span><span class="ot">.</span><span class="kw">labels</span><span class="ot">[</span><span class="kw">t</span><span class="ot">]</span>
+
+      <span class="co">-- test sample</span>
+      <span class="kw">local</span> <span class="kw">pred</span> <span class="ot">=</span> <span class="kw">model</span>:forward<span class="ot">(</span><span class="kw">input</span><span class="ot">)</span>
+      <span class="kw">confusion</span>:add<span class="ot">(</span><span class="kw">pred</span>, <span class="kw">target</span><span class="ot">)</span>
+   <span class="kw">end</span>
+
+   <span class="co">-- timing</span>
+   <span class="kw">time</span> <span class="ot">=</span> <span class="kw">sys</span><span class="ot">.</span>clock<span class="ot">()</span> <span class="ot">-</span> <span class="kw">time</span>
+   <span class="kw">time</span> <span class="ot">=</span> <span class="kw">time</span> <span class="ot">/</span> <span class="kw">testData</span>:size<span class="ot">()</span>
+   <span class="fu">print</span><span class="ot">(</span><span class="st">&quot;==&gt; time to test 1 sample = &quot;</span> <span class="ot">..</span> <span class="ot">(</span><span class="kw">time</span><span class="ot">*</span><span class="dv">1000</span><span class="ot">)</span> <span class="ot">..</span> <span class="st">&#39;ms&#39;</span><span class="ot">)</span>
+
+   <span class="co">-- print confusion matrix</span>
+   <span class="fu">print</span><span class="ot">(</span><span class="kw">confusion</span><span class="ot">)</span>
+   <span class="kw">confusion</span>:zero<span class="ot">()</span>
+
+   <span class="co">-- update log/plot</span>
+   <span class="kw">testLogger</span>:add<span class="ot">{[</span><span class="st">&#39;% mean class accuracy (test set)&#39;</span><span class="ot">]</span> <span class="ot">=</span> <span class="kw">confusion</span><span class="ot">.</span><span class="kw">totalValid</span> <span class="ot">*</span> <span class="dv">100</span><span class="ot">}</span>
+   <span class="kw">if</span> <span class="kw">opt</span><span class="ot">.</span><span class="kw">plot</span> <span class="kw">then</span>
+      <span class="kw">testLogger</span>:style<span class="ot">{[</span><span class="st">&#39;% mean class accuracy (test set)&#39;</span><span class="ot">]</span> <span class="ot">=</span> <span class="st">&#39;-&#39;</span><span class="ot">}</span>
+      <span class="kw">testLogger</span>:plot<span class="ot">()</span>
+   <span class="kw">end</span>
+
+   <span class="co">-- averaged param use?</span>
+   <span class="kw">if</span> <span class="kw">average</span> <span class="kw">then</span>
+      <span class="co">-- restore parameters</span>
+      <span class="kw">parameters</span>:copy<span class="ot">(</span><span class="kw">cachedparams</span><span class="ot">)</span>
+   <span class="kw">end</span>
+<span class="kw">end</span></code></pre>
+<p>The train/test procedure now looks like this:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">while</span> <span class="kw">true</span>
+   train<span class="ot">()</span>
+   test<span class="ot">()</span>
+<span class="kw">end</span></code></pre>
+<h2 id="all-done">All Done!</h2>
+<p>The final step of course, is to run <em>doall.lua</em>, which will train the model over the entire training set. If you use the -extra flag, you will obtain state-of-the-art results (in a couple of days of course!).</p>

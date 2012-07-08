@@ -37,7 +37,7 @@ if not opt then
    cmd:option('-t0', 1, 'start averaging at t0 (ASGD only), in nb of epochs')
    cmd:option('-maxIter', 2, 'maximum nb of iterations for CG and LBFGS')
    cmd:text()
-   opt = cmd:parse(arg)
+   opt = cmd:parse(arg or {})
 end
 
 ----------------------------------------------------------------------
@@ -53,7 +53,9 @@ confusion = optim.ConfusionMatrix(classes)
 trainLogger = optim.Logger(paths.concat(opt.save, 'train.log'))
 testLogger = optim.Logger(paths.concat(opt.save, 'test.log'))
 
--- retrieve parameters and gradients
+-- Retrieve parameters and gradients:
+-- this extracts and flattens all the trainable parameters of the mode
+-- into a 1-dim vector
 if model then
    parameters,gradParameters = model:getParameters()
 end

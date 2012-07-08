@@ -7,7 +7,7 @@
       a {color:#777;text-decoration:none;}
       h1 {color:#777;background:#eee;padding:10px;margin-top:0px;padding-top:20px;text-align:center;}
       h2 {color:#444;}
-      pre {background:#eee;color:#222;width:100%;padding:10px;
+      pre {background:#eee;color:#222;width:572px;padding:10px;
            overflow:scroll;border-style:solid;border-color:#ddd;border-width:4px;
            -moz-border-radius: 15px; border-radius: 15px;}
    </style>
@@ -153,6 +153,17 @@
    <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;test data, &#39;</span><span class="ot">..</span><span class="kw">channel</span><span class="ot">..</span><span class="st">&#39;-channel, mean: &#39;</span> <span class="ot">..</span> <span class="kw">testMean</span><span class="ot">)</span>
    <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;test data, &#39;</span><span class="ot">..</span><span class="kw">channel</span><span class="ot">..</span><span class="st">&#39;-channel, standard deviation: &#39;</span> <span class="ot">..</span> <span class="kw">testStd</span><span class="ot">)</span>
 <span class="kw">end</span></code></pre>
+<p>We can then get an idea of how the preprocessing transformed the data by displaying it:</p>
+<pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- Visualization is quite easy, using image.display(). Check out:</span>
+<span class="co">-- help(image.display), for more info about options.</span>
+
+<span class="kw">first256Samples_y</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{</span><span class="dv">1</span>,<span class="dv">256</span><span class="ot">}</span>,<span class="dv">1</span> <span class="ot">}]</span>
+<span class="kw">first256Samples_u</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{</span><span class="dv">1</span>,<span class="dv">256</span><span class="ot">}</span>,<span class="dv">2</span> <span class="ot">}]</span>
+<span class="kw">first256Samples_v</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">[{</span> <span class="ot">{</span><span class="dv">1</span>,<span class="dv">256</span><span class="ot">}</span>,<span class="dv">3</span> <span class="ot">}]</span>
+<span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">first256Samples_y</span>, <span class="kw">nrow</span><span class="ot">=</span><span class="dv">16</span>, <span class="kw">legend</span><span class="ot">=</span><span class="st">&#39;Some training examples: Y channel&#39;</span><span class="ot">}</span>
+<span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">first256Samples_u</span>, <span class="kw">nrow</span><span class="ot">=</span><span class="dv">16</span>, <span class="kw">legend</span><span class="ot">=</span><span class="st">&#39;Some training examples: U channel&#39;</span><span class="ot">}</span>
+<span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">first256Samples_v</span>, <span class="kw">nrow</span><span class="ot">=</span><span class="dv">16</span>, <span class="kw">legend</span><span class="ot">=</span><span class="st">&#39;Some training examples: V channel&#39;</span><span class="ot">}</span></code></pre>
+<p><img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/y-channel.png" /> <img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/u-channel.png" /> <img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/v-channel.png" /></p>
 <h2 id="step-2-model-definition">Step 2: Model Definition</h2>
 <p>The code for this section is in <em>2_model.lua</em>. Run it like this:</p>
 <pre class="sourceCode bash"><code class="sourceCode bash">torch -i 2_model.lua -model linear

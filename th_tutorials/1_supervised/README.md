@@ -184,6 +184,25 @@ for i,channel in ipairs(channels) do
 end
 ```
 
+We can then get an idea of how the preprocessing transformed the data by
+displaying it:
+
+```lua
+-- Visualization is quite easy, using image.display(). Check out:
+-- help(image.display), for more info about options.
+
+first256Samples_y = trainData.data[{ {1,256},1 }]
+first256Samples_u = trainData.data[{ {1,256},2 }]
+first256Samples_v = trainData.data[{ {1,256},3 }]
+image.display{image=first256Samples_y, nrow=16, legend='Some training examples: Y channel'}
+image.display{image=first256Samples_u, nrow=16, legend='Some training examples: U channel'}
+image.display{image=first256Samples_v, nrow=16, legend='Some training examples: V channel'}
+```
+
+![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/y-channel.png)
+![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/u-channel.png)
+![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/v-channel.png)
+
 Step 2: Model Definition
 ------------------------
 

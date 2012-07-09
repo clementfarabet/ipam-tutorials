@@ -71,8 +71,6 @@ July 9 - 27, 2012
 
   * will review very basic Lua and Torch concepts, to get people started
 
-  * will also do some basic review of available ML packages, graphical models, and so on
-
 * Remaining time - getting people into groups and setting them up to run the sample code
   on laptop or EC2. Once they get it running, they can go for lunch or stick
   around and play with things.
@@ -83,7 +81,8 @@ July 9 - 27, 2012
 * Models: SVM, MLP, ConvNets, (Logistic Regression?)
 
 * Data Sets: MNIST, CIFAR, Google Street View House Numbers (SVHN).
-  SVHN is an interesting new data set - very few results are available at this time (and is more computer visionny that MNIST)
+  SVHN is an interesting new data set, very few results are available at this time 
+  (and is more computer visionny that MNIST).
 
 * Optimization Methods: SGD, ASGD, L-BFGS; batch vs. mini-batch vs. online
 
@@ -93,10 +92,11 @@ July 9 - 27, 2012
 * Python: Imprinting, K-Means, Autoencoder, De-noising Autoencoder, RBM,
   (Sparse Coding?)
 
-* Torch: PSD Autoencoder
+* Torch: Linar Autencoder, Convolutional Autoencoder, Linear and 
+  Convolutional PSD (Predictive Sparse Decomposition) Autoencoder
 
 
-## Day 4: To Be Decided...
+## Day 4: To Be Decided
 
 * Persitant Contrastive Divergence?
 
@@ -105,3 +105,5 @@ July 9 - 27, 2012
 * Recurrent Neural Networks?
 
 * GPU Programming 101?
+
+* Torch/nn extensions: write your own modules

@@ -19,7 +19,7 @@ As for the supervised learning tutorial, the code is split into multiple files:
   * 2_models.lua
   * 3_train.lua
 
-And a top file, _doall.lua_, runs the complete experiment. In this case though, there are
+And a top file, `doall.lua`, runs the complete experiment. In this case though, there are
 too many inter-dependencies between files, so they can be loaded individually. If you still want
 to interact with the code, run:
 
@@ -106,13 +106,31 @@ module:accGradParameters(input, input)
 -- the trainable parameters x
 ```
 
+#### Exercises:
+
+There are 3 main parameters you can play with: the input size, the output
+size, and the type of non-linearity you use.
+
+  * observe the effect of the input size (past a certain size, it's almost
+  impossible to reconstruct anything, unless you have as many output units
+  as inputs)
+
+  * observe the effect of the output size, and why not compare the results
+  with PCA?
+
+The autoencoder code I provide here is very simple and naive. A natural
+extension of autoencoders are denoising autoencoders, where the idea is
+to add salt and pepper noise to the input variables, to force the mode
+to construct a good representation for the data. Can you implement this?
+
+
+### Predictive Sparse Decomposition (PSD) Autoencoder
+
 One big shortcoming of basic autoencoders is that it's usually hard to train them, and hard to avoid getting to close to learning the identity function. In practice, using a code y that is smaller than x is enough to avoid learning the identity, but it remains hard to do much better than PCA.
 
 Using codes that are overcomplete (i.e. with more components than the input) makes the problem even worse. There are different ways that an autoencoder with an overcomplete code may still discover interesting representations. One common way is the addition of sparsity: by forcing units of the hidden representation to be mostly 0s, the autoencoder has to learn a nice distributed representation of the data.
 
 We now present a method to impose sparsity on the code, which typically allows codes that are overcomplete, sparse, and very useful for tasks like classification/recognition.
-
-### Predictive Sparse Decomposition (PSD) Autoencoder
 
 Adaptive sparse coding methods learn a possibly overcomplete set of basis functions, such that natural image patches can be reconstructed by linearly combining a small subset of these bases. The applicability of these methods to visual object recognition tasks has been limited because of the prohibitive cost of the optimization algorithms required to compute the sparse representation.
 
@@ -134,7 +152,7 @@ This particular formulation, called Basis Pursuit Denoising, can be seen as mini
 
 In order to make inference efficient, we train a non-linear regressor that maps input signals y to sparse representations z. We consider the following nonlinear mapping:
 
-https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/)
+![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/psd_encoder.png)
 
 where W is a weight trainable matrix, d a trainable vector of biases, and g a vector of gains. We want to train this nonlinear mapping as a predictor for the optimal solution to the sparse coding algorithm presented in the previsous section.
 
@@ -194,6 +212,13 @@ encoder:add(nn.Diag(outputSize))
 -- decoder is L1 solution:
 decoder = unsup.SpatialConvFistaL1(decodertable, 5, 5, 25, 25)
 ```
+
+#### Exercises:
+
+As for the regular autoencoders, you can play with the input size, but what mostly affects
+the models' performance now is the filter size (in its convolutional version), and
+the sparsity coefficient. Try to see how the sparsity coefficient affects the 
+(encoder) weights. Do you observe a checkerboard effect? Why?
 
 Step 2: Training
 ----------------
@@ -255,6 +280,10 @@ end
 ```
 
 Ok, that's it, given some training data, this code will loop over all samples, and minimize the reconstruction error, using stochastic gradient descent.
+
+#### Exercises:
+
+As usual, we have access to several optimization techniques, and can set the batch size. How does the batch size affect the reconstruction error?
 
 Step 3: Second-order Information
 --------------------------------
@@ -346,3 +375,8 @@ At 80,000 samples:
 
 Notice how the checker board effect is still present after 40,000 samples, but completely
 gone at the end.
+
+#### Exercises:
+
+Given the small amount of time, try to reproduce these results, but with only
+a handful of filters (say 8 or 16).

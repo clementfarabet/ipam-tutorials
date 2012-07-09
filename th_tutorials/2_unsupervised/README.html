@@ -28,7 +28,7 @@
 <li>2_models.lua</li>
 <li>3_train.lua</li>
 </ul>
-<p>And a top file, <em>doall.lua</em>, runs the complete experiment. In this case though, there are too many inter-dependencies between files, so they can be loaded individually. If you still want to interact with the code, run:</p>
+<p>And a top file, <code>doall.lua</code>, runs the complete experiment. In this case though, there are too many inter-dependencies between files, so they can be loaded individually. If you still want to interact with the code, run:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">torch</span> <span class="ot">-</span><span class="kw">i</span> <span class="kw">doall</span><span class="ot">.</span><span class="kw">lua</span></code></pre>
 <p>And issue ctrl+C at anytime, to kill the execution. You will then have access to an interpreter, and be able to explore any of the variables (model, data, ...).</p>
 <p>The complete tutorial uses a version of the Berkeley dataset, which is already locally normalized (preprocessed), with 56x56 patches randomly extracted from the original images.</p>
@@ -77,10 +77,17 @@
  
 <span class="co">-- at this stage, dl_dx contains the gradients of the loss wrt</span>
 <span class="co">-- the trainable parameters x</span></code></pre>
+<h4 id="exercises">Exercises:</h4>
+<p>There are 3 main parameters you can play with: the input size, the output size, and the type of non-linearity you use.</p>
+<ul>
+<li><p>observe the effect of the input size (past a certain size, it's almost impossible to reconstruct anything, unless you have as many output units as inputs)</p></li>
+<li><p>observe the effect of the output size, and why not compare the results with PCA?</p></li>
+</ul>
+<p>The autoencoder code I provide here is very simple and naive. A natural extension of autoencoders are denoising autoencoders, where the idea is to add salt and pepper noise to the input variables, to force the mode to construct a good representation for the data. Can you implement this?</p>
+<h3 id="predictive-sparse-decomposition-psd-autoencoder">Predictive Sparse Decomposition (PSD) Autoencoder</h3>
 <p>One big shortcoming of basic autoencoders is that it's usually hard to train them, and hard to avoid getting to close to learning the identity function. In practice, using a code y that is smaller than x is enough to avoid learning the identity, but it remains hard to do much better than PCA.</p>
 <p>Using codes that are overcomplete (i.e. with more components than the input) makes the problem even worse. There are different ways that an autoencoder with an overcomplete code may still discover interesting representations. One common way is the addition of sparsity: by forcing units of the hidden representation to be mostly 0s, the autoencoder has to learn a nice distributed representation of the data.</p>
 <p>We now present a method to impose sparsity on the code, which typically allows codes that are overcomplete, sparse, and very useful for tasks like classification/recognition.</p>
-<h3 id="predictive-sparse-decomposition-psd-autoencoder">Predictive Sparse Decomposition (PSD) Autoencoder</h3>
 <p>Adaptive sparse coding methods learn a possibly overcomplete set of basis functions, such that natural image patches can be reconstructed by linearly combining a small subset of these bases. The applicability of these methods to visual object recognition tasks has been limited because of the prohibitive cost of the optimization algorithms required to compute the sparse representation.</p>
 <p>In this tutorial we propose a simple and efficient algorithm to learn overcomplete basis functions, by introducing a particular form of autoencoder. After training, the model also provides a fast and smooth approximator to the optimal representation, achieving even better accuracy than exact sparse coding algorithms on visual object recognition tasks.</p>
 <h4 id="sparse-coding">Sparse Coding</h4>
@@ -95,7 +102,9 @@
 <p>This particular formulation, called Basis Pursuit Denoising, can be seen as minimizing an objective that penalizes the reconstruction error using a linear basis set and the sparsity of the corresponding representation. While this formulation is nice, inference requires running some sort of iterative minimization algorithm that is always computationally expensive. In the following we present a predictive version of this algorithm, based on an autoencoder formulation, which yields fixed-time, and fast inference.</p>
 <h4 id="linear-psd">Linear PSD</h4>
 <p>In order to make inference efficient, we train a non-linear regressor that maps input signals y to sparse representations z. We consider the following nonlinear mapping:</p>
-<p>https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/)</p>
+<div class="figure">
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/psd_encoder.png" /><p class="caption"></p>
+</div>
 <p>where W is a weight trainable matrix, d a trainable vector of biases, and g a vector of gains. We want to train this nonlinear mapping as a predictor for the optimal solution to the sparse coding algorithm presented in the previsous section.</p>
 <p>The following loss function, called predictive sparse decomposition, can help us achieve such a goal:</p>
 <div class="figure">
@@ -133,6 +142,8 @@
  
 <span class="co">-- decoder is L1 solution:</span>
 <span class="kw">decoder</span> <span class="ot">=</span> <span class="kw">unsup</span><span class="ot">.</span>SpatialConvFistaL1<span class="ot">(</span><span class="kw">decodertable</span>, <span class="dv">5</span>, <span class="dv">5</span>, <span class="dv">25</span>, <span class="dv">25</span><span class="ot">)</span></code></pre>
+<h4 id="exercises-1">Exercises:</h4>
+<p>As for the regular autoencoders, you can play with the input size, but what mostly affects the models' performance now is the filter size (in its convolutional version), and the sparsity coefficient. Try to see how the sparsity coefficient affects the (encoder) weights. Do you observe a checkerboard effect? Why?</p>
 <h2 id="step-2-training">Step 2: Training</h2>
 <p>If you've read the tutorial on supervised learning, training a model unsupervised is basically equivalent. We first define a closure that computes the loss, and the gradients of that loss wrt the trainable parameters, and then pass this closure to one of the optimizers in optim. As usual, we use SGD to train autoencoders on large amounts of data:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- some parameters</span>
@@ -187,6 +198,8 @@
  
 <span class="kw">end</span></code></pre>
 <p>Ok, that's it, given some training data, this code will loop over all samples, and minimize the reconstruction error, using stochastic gradient descent.</p>
+<h4 id="exercises-2">Exercises:</h4>
+<p>As usual, we have access to several optimization techniques, and can set the batch size. How does the batch size affect the reconstruction error?</p>
 <h2 id="step-3-second-order-information">Step 3: Second-order Information</h2>
 <p>Training PSD autoencoders, especially convolutional ones, is a particularly challenging optimization problem. This is due to the loss function, which contains particularly opposing terms. As a result, the encoder's weights usually get stuck with checker board patterns for a long time, before starting to properly minimize the cost function. To east the optimization a little bit, we can use second-order information, to condition each parameter individually.</p>
 <p>A simple way of doing that, which was proposed in (Lecun, 1987), is to compute an approximation of the diagonal terms of the Hessian, and adapt the learning rate of each parameter in the system proportionally to the inverse of the diagonal terms.</p>
@@ -251,3 +264,5 @@
 <img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/filters_80000.png" /><p class="caption"></p>
 </div>
 <p>Notice how the checker board effect is still present after 40,000 samples, but completely gone at the end.</p>
+<h4 id="exercises-3">Exercises:</h4>
+<p>Given the small amount of time, try to reproduce these results, but with only a handful of filters (say 8 or 16).</p>

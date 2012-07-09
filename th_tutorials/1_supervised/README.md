@@ -658,3 +658,10 @@ The final step of course, is to run _doall.lua_, which will train the model
 over the entire training set. By default, it uses the basic training set size
 (about 70,000 samples). If you use the flag: `-size extra`, you will obtain
 state-of-the-art results (in a couple of days of course!).
+
+### Final Exercise
+
+If time allows, you can try to replace this dataset by other datasets, such
+as MNIST, which you should already have working (from day 1). Try to think
+about what you have to change/adapt to work with other types of images
+(non RGB, binary, infrared?).

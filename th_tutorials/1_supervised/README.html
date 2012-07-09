@@ -18,7 +18,7 @@
 <p>The tutorial demonstrates how to:</p>
 <ul>
 <li>pre-process the (train and test) data, to facilitate learning</li>
-<li>describe a model to solve a classificaiton task</li>
+<li>describe a model to solve a classification task</li>
 <li>choose a loss function to minimize</li>
 <li>define a sampling procedure (stochastic, mini-batches), and apply one of several optimization techniques to train the model's parameters</li>
 <li>estimate the model's performance on unseen (test) data</li>
@@ -31,11 +31,13 @@
 <li>4_train.lua</li>
 <li>5_test.lua</li>
 </ul>
-<p>A top script, doall.lua, is also provided to run the complete procedure at once.</p>
+<p>A top script, <code>doall.lua</code>, is also provided to run the complete procedure at once.</p>
+<p>At the end of each section, I propose a couple of exercises, which are mostly intended to make you modify the code, and get a good idea of the effect of each parameter on the global procedure. Although the exercises are proposed at the end of each section, they should be done after you've read the complete tutorial, as they (almost) all require you to run the <code>doall.lua</code> script, to get training results.</p>
+<p>The complete dataset is big, and we don't have time to play with the full set in this short tutorial session. The script <code>doall.lua</code> comes with a <code>-size</code> flag, which you should set to <code>small</code>, to only use 10,000 training samples.</p>
 <p>The example scripts provided are quite verbose, on purpose. Instead of relying on opaque classes, dataset creation and the training loop are basically exposed right here. Although a bit challenging at first, it should help new users quickly become independent, and able to tweak the code for their own problems.</p>
-<p>On top of the scripts above, I provide an extra script, A_slicing.lua, which should help you understand how tensor/arry slicing works in Torch.</p>
+<p>On top of the scripts above, I provide an extra script, <code>A_slicing.lua</code>, which should help you understand how tensor/arry slicing works in Torch (if you're a Matlab user, you should be familiar with the contept, then it's just a matter of syntax).</p>
 <h2 id="step-1-data">Step 1: Data</h2>
-<p>The code for this section is in <em>1_data.lua</em>. Run it like this:</p>
+<p>The code for this section is in <code>1_data.lua</code>. Run it like this:</p>
 <pre class="sourceCode bash"><code class="sourceCode bash">torch -i 1_data.lua</code></pre>
 <p>This will give you an interpreter to play with the data once it's loaded/preprocessed.</p>
 <p>For this tutorial, we'll be using the <a href="http://ufldl.stanford.edu/housenumbers/">Street View House Number</a> dataset. SVHN is a real-world image dataset for developing machine learning and object recognition algorithms with minimal requirement on data preprocessing and formatting. It can be seen as similar in flavor to MNIST (e.g., the images are of small cropped digits), but incorporates an order of magnitude more labeled data (over 600,000 digit images) and comes from a significantly harder, unsolved, real world problem (recognizing digits and numbers in natural scene images). SVHN is obtained from house numbers in Google Street View images.</p>
@@ -77,7 +79,7 @@
    <span class="kw">labels</span> <span class="ot">=</span> <span class="kw">loaded</span><span class="ot">.</span><span class="kw">y</span><span class="ot">[</span><span class="dv">1</span><span class="ot">]</span>,
    <span class="kw">size</span> <span class="ot">=</span> <span class="kw">function</span><span class="ot">()</span> <span class="kw">return</span> <span class="ot">(#</span><span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span><span class="ot">)[</span><span class="dv">1</span><span class="ot">]</span> <span class="kw">end</span>
 <span class="ot">}</span></code></pre>
-<p>Preprocessing requires a floating point representation (the original data is stored on bytes). Types can be easily converted in Torch, in general by doing: dst = src:type('torch.TypeTensor'), where Type=='Float','Double','Byte','Int',... Shortcuts are provided for simplicity (float(),double(),cuda(),...):</p>
+<p>Preprocessing requires a floating point representation (the original data is stored on bytes). Types can be easily converted in Torch, in general by doing: <code>dst = src:type('torch.TypeTensor')</code>, where <code>Type=='Float','Double','Byte','Int',</code>... Shortcuts are provided for simplicity (<code>float(),double(),cuda()</code>,...):</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span> <span class="ot">=</span> <span class="kw">trainData</span><span class="ot">.</span><span class="kw">data</span>:float<span class="ot">()</span>
 <span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span> <span class="ot">=</span> <span class="kw">testData</span><span class="ot">.</span><span class="kw">data</span>:float<span class="ot">()</span></code></pre>
 <p>We now preprocess the data. Preprocessing is crucial when applying pretty much any kind of machine learning algorithm.</p>
@@ -164,8 +166,10 @@
 <span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">first256Samples_u</span>, <span class="kw">nrow</span><span class="ot">=</span><span class="dv">16</span>, <span class="kw">legend</span><span class="ot">=</span><span class="st">&#39;Some training examples: U channel&#39;</span><span class="ot">}</span>
 <span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">first256Samples_v</span>, <span class="kw">nrow</span><span class="ot">=</span><span class="dv">16</span>, <span class="kw">legend</span><span class="ot">=</span><span class="st">&#39;Some training examples: V channel&#39;</span><span class="ot">}</span></code></pre>
 <p><img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/y-channel.png" /> <img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/u-channel.png" /> <img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/v-channel.png" /></p>
+<h3 id="exercise">Exercise:</h3>
+<p>This is not the only kind of normalization! Data can be normalized in different manners, for instance, by normalizing individual features across the dataset (in this case, the pixels). Try these different normalizations, and see the impact they have on the training convergence.</p>
 <h2 id="step-2-model-definition">Step 2: Model Definition</h2>
-<p>The code for this section is in <em>2_model.lua</em>. Run it like this:</p>
+<p>The code for this section is in <code>2_model.lua</code>. Run it like this:</p>
 <pre class="sourceCode bash"><code class="sourceCode bash">torch -i 2_model.lua -model linear
 torch -i 2_model.lua -model mlp
 torch -i 2_model.lua -model convnet</code></pre>
@@ -237,6 +241,14 @@ torch -i 2_model.lua -model convnet</code></pre>
 <li><p>recent work (Jarret et al.) has demonstrated the advantage of locally normalizing sets of internal features, at each stage of the model. The use of smoother pooling functions, such as the L2 norm for instance instead of the harsher max-pooling, has also been shown to yield better generalization (Sermanet et al.). We use these two ingredients in this model.</p></li>
 <li><p>one other remark: it is typically not a good idea to use fully connected layers, in internal layers. In general, favoring large numbers of features (over-completeness) over density of connections helps achieve better results (empirical evidence of this was reported in several papers, as in Hadsell et al.). The SpatialConvolutionMap module accepts tables of connectivities (maps) that allows one to create arbitrarily sparse connections between two layers. A couple of standard maps/tables are provided in nn.tables.</p></li>
 </ul>
+<h3 id="exercises">Exercises:</h3>
+<p>The number of meta-parameters to adjust can be daunting at first. Try to get a feeling of the inlfuence of these parameters on the learning convergence:</p>
+<ul>
+<li><p>going from the MLP to a ConvNet of similar size (you will need to think a little bit about the equivalence between the ConvNet states and the MLP states)</p></li>
+<li><p>replacing the 2-layer MLP on top of the ConvNet by a simpler linear classifier</p></li>
+<li><p>replacing the L2-pooling function by a max-pooling</p></li>
+<li><p>replacing the two-layer ConvNet by a single layer ConvNet with a much larger pooling area (to conserve the size of the receptive field)</p></li>
+</ul>
 <h2 id="step-3-loss-function">Step 3: Loss Function</h2>
 <p>Now that we have a model, we need to define a loss function to be minimized, across the entire training set:</p>
 <div class="figure">
@@ -266,12 +278,19 @@ torch -i 2_model.lua -model convnet</code></pre>
 </div>
 <p>Given that our model already produces log-probabilities (thanks to the <em>softmax</em>), the loss is quite straightforward to estimate. In Torch, we use the <em>ClassNLLCriterion</em>, which expects its input as being a vector of log-probabilities, and the target as being an integer pointing to the correct class:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">criterion</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>ClassNLLCriterion<span class="ot">()</span></code></pre>
-<p>Finally, another type of classification loss is the multi-class margin loss, which is closer to the SVM loss. That loss function can be implemented like this:</p>
+<p>Finally, another type of classification loss is the multi-class margin loss, which is closer to the well-known SVM loss. This loss function doesn't require normalized outputs, and can be implemented like this:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">criterion</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>MultiMarginCriterion<span class="ot">()</span></code></pre>
+<p>The margin loss typically works on par with the negative log-likelihood. I haven't tested this thoroughly, so it's time for more exercises.</p>
+<h3 id="exercises-1">Exercises:</h3>
+<p>The obvious exercise now is to play with these different loss functions, and see how they affect convergence. In particular try to:</p>
+<ul>
+<li>swap the loss from NLL to MultiMargin, and if it doesn't work as well, thinkg a little bit more about the scaling of the gradients, and whether you should rescale the learning rate.</li>
+</ul>
 <h2 id="step-4-training-procedure">Step 4: Training Procedure</h2>
-<p>We now have some training data, a model to train, and a loss function to minimize. We define a training procedure, which you will find in this file: <em>4_train.lua</em>.</p>
+<p>We now have some training data, a model to train, and a loss function to minimize. We define a training procedure, which you will find in this file: <code>4_train.lua</code>.</p>
 <p>A very important aspect about supervised training of non-linear models (ConvNets and MLPs) is the fact that the optimization problem is not convex anymore. This reinforces the need for a stochastic estimation of gradients, which have shown to produce much better generalization results for several problems.</p>
 <p>In this example, we show how the optimization algorithm can be easily set to either L-BFGS, CG, SGD or ASGD. In practice, it's very important to start with a few epochs of pure SGD, before switching to L-BFGS or ASGD (if switching at all). The intuition for that is related to the non-convex nature of the problem: at the very beginning of training (random initialization), the landscape might be highly non-convex, and no assumption should be made about the shape of the energy function. Often, SGD is the best we can do. Later on, batch methods (L-BFGS, CG) can be used more safely.</p>
+<p>Interestingly, in the case of large convex problems, stochasticity is also very important, as it allows much faster (rough) convergence. Several works have explored these techniques, in particular, this recent <a href="http://users.eecs.northwestern.edu/~nocedal/PDFfiles/dss.pdf">paper from Byrd/Nocedal</a>, and work on pure stochastic gradient descent by <a href="http://leon.bottou.org/projects/sgd">Bottou</a>.</p>
 <p>Here is our full training function, which demonstrates that you can switch the optimization you're using at runtime (if you want to), and also modify the batch size you're using at run time. You can do all these things because we create the evaluation closure each time we create a new batch. If the batch size is 1, then the method is purely stochastic. If the batch size is set to the complete dataset, then the method is a pure batch method.</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- classes</span>
 <span class="kw">classes</span> <span class="ot">=</span> <span class="ot">{</span><span class="st">&#39;1&#39;</span>,<span class="st">&#39;2&#39;</span>,<span class="st">&#39;3&#39;</span>,<span class="st">&#39;4&#39;</span>,<span class="st">&#39;5&#39;</span>,<span class="st">&#39;6&#39;</span>,<span class="st">&#39;7&#39;</span>,<span class="st">&#39;8&#39;</span>,<span class="st">&#39;9&#39;</span>,<span class="st">&#39;0&#39;</span><span class="ot">}</span>
@@ -413,8 +432,14 @@ torch -i 2_model.lua -model convnet</code></pre>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">while</span> <span class="kw">true</span>
    train<span class="ot">()</span>
 <span class="kw">end</span></code></pre>
+<h3 id="exercices">Exercices:</h3>
+<p>So, a bit on purpose, I've given you this blob of training code with rather few explanations. Try to understand what's going on, to do the following things:</p>
+<ul>
+<li><p>modify the batch size (and possibly the learning rate) and observe the impact on training accuracy, and test accuracy (generalization)</p></li>
+<li><p>change the optimization method, and in particular, try to start with L-BFGS from the very first epoch. What happens then?</p></li>
+</ul>
 <h2 id="step-5-test-the-model">Step 5: Test the Model</h2>
-<p>A common thing to do is to test the model's performance while we train it. Usually, this test is done on a subset of the training data, that is kept for cross-validation. Here we simply define the test procedure on the available test set:</p>
+<p>A common thing to do is to test the model's performance while we train it. Usually, this test is done on a subset of the training data, that is kept for validation. Here we simply define the test procedure on the available test set:</p>
 <pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">function</span> test<span class="ot">()</span>
    <span class="co">-- local vars</span>
    <span class="kw">local</span> <span class="kw">time</span> <span class="ot">=</span> <span class="kw">sys</span><span class="ot">.</span>clock<span class="ot">()</span>
@@ -467,5 +492,11 @@ torch -i 2_model.lua -model convnet</code></pre>
    train<span class="ot">()</span>
    test<span class="ot">()</span>
 <span class="kw">end</span></code></pre>
+<h3 id="exercices-1">Exercices:</h3>
+<p>As mentionned above, validation is the proper (an only!) way to train a model and estimate how well it does on unseen data:</p>
+<ul>
+<li><p>modify the code above to extract a subset of the training data to use for validation</p></li>
+<li><p>once you have that, add a stopping condition to the script, such that it terminates once the validation error starts rising above a certain threshold. This is called early-stopping.</p></li>
+</ul>
 <h2 id="all-done">All Done!</h2>
-<p>The final step of course, is to run <em>doall.lua</em>, which will train the model over the entire training set. If you use the -extra flag, you will obtain state-of-the-art results (in a couple of days of course!).</p>
+<p>The final step of course, is to run <em>doall.lua</em>, which will train the model over the entire training set. By default, it uses the basic training set size (about 70,000 samples). If you use the flag: <code>-size extra</code>, you will obtain state-of-the-art results (in a couple of days of course!).</p>

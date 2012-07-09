@@ -8,7 +8,7 @@ here is based on this [existing tutorial](http://torch.cogbits.com/doc/tutorials
 The tutorial demonstrates how to:
 
   * pre-process the (train and test) data, to facilitate learning
-  * describe a model to solve a classificaiton task
+  * describe a model to solve a classification task
   * choose a loss function to minimize
   * define a sampling procedure (stochastic, mini-batches), and apply one of several optimization techniques to train the model's parameters
   * estimate the model's performance on unseen (test) data
@@ -21,20 +21,31 @@ Each of these 5 steps is accompanied by a script, present in this directory:
   * 4_train.lua
   * 5_test.lua
 
-A top script, doall.lua, is also provided to run the complete procedure at once.
+A top script, `doall.lua`, is also provided to run the complete procedure at once.
+
+At the end of each section, I propose a couple of exercises, which are mostly
+intended to make you modify the code, and get a good idea of the effect of each
+parameter on the global procedure. Although the exercises are proposed at the end
+of each section, they should be done after you've read the complete tutorial, as
+they (almost) all require you to run the `doall.lua` script, to get training results.
+
+The complete dataset is big, and we don't have time to play with the full set in
+this short tutorial session. The script `doall.lua` comes with a `-size` flag, which
+you should set to `small`, to only use 10,000 training samples.
 
 The example scripts provided are quite verbose, on purpose. Instead of relying on opaque 
 classes, dataset creation and the training loop are basically exposed right here. Although
 a bit challenging at first, it should help new users quickly become independent, and able 
 to tweak the code for their own problems.
 
-On top of the scripts above, I provide an extra script, A_slicing.lua, which should help
-you understand how tensor/arry slicing works in Torch.
+On top of the scripts above, I provide an extra script, `A_slicing.lua`, which should help
+you understand how tensor/arry slicing works in Torch (if you're a Matlab user,
+you should be familiar with the contept, then it's just a matter of syntax).
 
 Step 1: Data
 ------------
 
-The code for this section is in *1_data.lua*. Run it like this:
+The code for this section is in `1_data.lua`. Run it like this:
 
 ```bash
 torch -i 1_data.lua
@@ -93,9 +104,9 @@ testData = {
 
 Preprocessing requires a floating point representation (the original
 data is stored on bytes). Types can be easily converted in Torch, 
-in general by doing: dst = src:type('torch.TypeTensor'), 
-where Type=='Float','Double','Byte','Int',... Shortcuts are provided
-for simplicity (float(),double(),cuda(),...):
+in general by doing: `dst = src:type('torch.TypeTensor')`, 
+where `Type=='Float','Double','Byte','Int',`... Shortcuts are provided
+for simplicity (`float(),double(),cuda()`,...):
 
 ```lua
 trainData.data = trainData.data:float()
@@ -203,10 +214,17 @@ image.display{image=first256Samples_v, nrow=16, legend='Some training examples: 
 ![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/u-channel.png)
 ![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/v-channel.png)
 
+### Exercise:
+
+This is not the only kind of normalization! Data can be normalized in different manners, 
+for instance, by normalizing individual features across the dataset (in this case, the
+pixels). Try these different normalizations, and see the impact they have on the
+training convergence.
+
 Step 2: Model Definition
 ------------------------
 
-The code for this section is in *2_model.lua*. Run it like this:
+The code for this section is in `2_model.lua`. Run it like this:
 
 ```bash
 torch -i 2_model.lua -model linear
@@ -311,6 +329,19 @@ A couple of comments about this model:
 
   * one other remark: it is typically not a good idea to use fully connected layers, in internal layers. In general, favoring large numbers of features (over-completeness) over density of connections helps achieve better results (empirical evidence of this was reported in several papers, as in Hadsell et al.). The SpatialConvolutionMap module accepts tables of connectivities (maps) that allows one to create arbitrarily sparse connections between two layers. A couple of standard maps/tables are provided in nn.tables.
 
+### Exercises:
+
+The number of meta-parameters to adjust can be daunting at first. Try to get a feeling
+of the inlfuence of these parameters on the learning convergence:
+
+  * going from the MLP to a ConvNet of similar size (you will need to think a little bit about the equivalence between the ConvNet states and the MLP states)
+
+  * replacing the 2-layer MLP on top of the ConvNet by a simpler linear classifier
+
+  * replacing the L2-pooling function by a max-pooling
+
+  * replacing the two-layer ConvNet by a single layer ConvNet with a much larger pooling area (to conserve the size of the receptive field)
+
 Step 3: Loss Function
 ---------------------
 
@@ -357,20 +388,30 @@ Given that our model already produces log-probabilities (thanks to the _softmax_
 criterion = nn.ClassNLLCriterion()
 ```
 
-Finally, another type of classification loss is the multi-class margin loss, which is closer to the SVM loss. That loss function can be implemented like this:
+Finally, another type of classification loss is the multi-class margin loss, which is closer to the well-known SVM loss. This loss function doesn't require normalized outputs, and can be implemented like this:
 
 ```lua
 criterion = nn.MultiMarginCriterion()
 ```
 
+The margin loss typically works on par with the negative log-likelihood. I haven't tested this thoroughly, so it's time for more exercises.
+
+### Exercises:
+
+The obvious exercise now is to play with these different loss functions, and see how they affect convergence. In particular try to:
+
+  * swap the loss from NLL to MultiMargin, and if it doesn't work as well, thinkg a little bit more about the scaling of the gradients, and whether you should rescale the learning rate.
+
 Step 4: Training Procedure
 --------------------------
 
-We now have some training data, a model to train, and a loss function to minimize. We define a training procedure, which you will find in this file: _4_train.lua_.
+We now have some training data, a model to train, and a loss function to minimize. We define a training procedure, which you will find in this file: `4_train.lua`.
 
 A very important aspect about supervised training of non-linear models (ConvNets and MLPs) is the fact that the optimization problem is not convex anymore. This reinforces the need for a stochastic estimation of gradients, which have shown to produce much better generalization results for several problems.
 
 In this example, we show how the optimization algorithm can be easily set to either L-BFGS, CG, SGD or ASGD. In practice, it's very important to start with a few epochs of pure SGD, before switching to L-BFGS or ASGD (if switching at all). The intuition for that is related to the non-convex nature of the problem: at the very beginning of training (random initialization), the landscape might be highly non-convex, and no assumption should be made about the shape of the energy function. Often, SGD is the best we can do. Later on, batch methods (L-BFGS, CG) can be used more safely.
+
+Interestingly, in the case of large convex problems, stochasticity is also very important, as it allows much faster (rough) convergence. Several works have explored these techniques, in particular, this recent [paper from Byrd/Nocedal](http://users.eecs.northwestern.edu/~nocedal/PDFfiles/dss.pdf), and work on pure stochastic gradient descent by [Bottou](http://leon.bottou.org/projects/sgd).
 
 Here is our full training function, which demonstrates that you can switch the optimization you're using at runtime (if you want to), and also modify the batch size you're using at run time. You can do all these things because we create the evaluation closure each time we create a new batch. If the batch size is 1, then the method is purely stochastic. If the batch size is set to the complete dataset, then the method is a pure batch method.
 
@@ -521,11 +562,22 @@ while true
 end
 ```
 
+### Exercices:
+
+So, a bit on purpose, I've given you this blob of training code with rather few
+explanations. Try to understand what's going on, to do the following things:
+
+  * modify the batch size (and possibly the learning rate) and observe the impact
+  on training accuracy, and test accuracy (generalization)
+
+  * change the optimization method, and in particular, try to start with L-BFGS
+  from the very first epoch. What happens then?
+
 Step 5: Test the Model
 ----------------------
 
 A common thing to do is to test the model's performance while we train it. Usually, this
-test is done on a subset of the training data, that is kept for cross-validation. Here
+test is done on a subset of the training data, that is kept for validation. Here
 we simply define the test procedure on the available test set:
 
 ```lua
@@ -587,9 +639,22 @@ while true
 end
 ```
 
+### Exercices:
+
+As mentionned above, validation is the proper (an only!) way to train
+a model and estimate how well it does on unseen data:
+
+  * modify the code above to extract a subset of the training data to 
+  use for validation
+
+  * once you have that, add a stopping condition to the script, such
+  that it terminates once the validation error starts rising above
+  a certain threshold. This is called early-stopping.
+
 All Done!
 ---------
 
 The final step of course, is to run _doall.lua_, which will train the model
-over the entire training set. If you use the -extra flag, you will obtain
+over the entire training set. By default, it uses the basic training set size
+(about 70,000 samples). If you use the flag: `-size extra`, you will obtain
 state-of-the-art results (in a couple of days of course!).

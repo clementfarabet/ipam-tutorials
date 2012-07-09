@@ -23,9 +23,38 @@ Installing Torch
 ----------------
 
 For these tutorials, we assume that Torch is already installed, as well as extra
-packages (_image_, _nnx_, _unsup_). If you want to install Torch on your machine, follow
-the instructions available [here](http://www.torch.ch/manual/install/index). A
-more condensed version can also be found [here](http://code.cogbits.com/).
+packages (_image_, _nnx_, _unsup_). If you want to install Torch on your machine
+(which I recommend for the next sessions), follow the instructions available
+[here](http://www.torch.ch/manual/install/index). A more condensed version can 
+also be found [here](http://code.cogbits.com/).
+
+EC2 Machine: Pre-built Torch for the tutorials
+----------------------------------------------
+
+For now, we have set up a server (Amazon EC2), which contains a pre-built version 
+of Torch, and all the packages necessary to run the demos/tutorials provided.
+The IP number of the server will change periodically, so we'll just tell you
+what it is when you need it.
+
+We will provide you with an identity file `ipam_identity.pem` file, which you'll use
+to log into the EC2 machine. Once you've got the `ipam_identity.pem` file and the 
+`ADDRESS` of the server, pick a unique `USERNAME`, for your use within the "student"
+account, and if you have a linux or OSX computer type:
+
+```bash
+# connect to our EC2 instance "ADDRESS"
+ssh -XC -i ipam_identity.pem student@ADDRESS
+
+# set up a workspace for yourself
+mkdir -p USERNAME/
+cd USERNAME
+git clone https://github.com/clementfarabet/ipam-tutorials.git
+cd ipam-tutorials/th_tutorials
+```
+
+At this stage, you have all the code for the tutorials in this directory.
+For the first day, we will start with the code in `0_getstarted/`, then
+on the second day we will attack `1_supervised/`, and so on.
 
 Running Code
 ------------
@@ -116,12 +145,6 @@ or from the Torch interpreter:
 t7> dofile 'getstarted.lua'
 ```
 
-More exhaustive information can be found in this
-[basic tutorial section](http://www.torch.ch/manual/tutorial/index). In
-particular a very quick [Lua primer](http://www.torch.ch/manual/tutorial/index#lua_basics),
-a fast intro to [Torch types](http://www.torch.ch/manual/tutorial/index#torch_basicsplaying_with_tensors),
-and a very simple introduction to [neural network training](http://www.torch.ch/manual/tutorial/index#exampletraining_a_neural_network).
-
 Getting help
 ------------
 
@@ -183,3 +206,44 @@ Torch has a built-in package management system that makes it very easy for anyon
 to get and develop new packages, which can be shared easily, using, for example 
 [GitHub](https://github.com/) as a distribution platform. More details about this
 [here](http://www.torch.ch/manual/install/index#the_torch_package_management_system).
+
+(Easy) Exercise
+---------------
+
+Ok it's day 1, we just got started, but if we have enough time, let's try to anticipate 
+what we'll have to do in the next days, with a simple exercise.
+
+In any machine learning task, data plays a central role. The most basic thing to
+do when getting new data is to ensure that it is properly normalized. This is
+valid for any ML problem. You will find the MNIST dataset already stored into
+the Torch file format [here](http://data.neuflow.org/data/mnist.t7.tgz). You can
+download it like this:
+
+```bash
+$ wget http://data.neuflow.org/data/mnist.t7.tgz
+$ tar xvf mnist.t7.tgz
+```
+
+You can then load both the training and test data like this:
+
+```lua
+t7> train = torch.load('mnist.t7/train_32x32.t7', 'ascii')
+t7> test = torch.load('mnist.t7/test_32x32.t7', 'ascii')
+t7> = train
+{[data]   = ByteTensor - size: 60000x1x32x32
+ [labels] = ByteTensor - size: 60000}
+```
+	
+Data needs to be normalized. Verify the initial data range, and
+write the necessary code to insure that the data has zero mean and
+unit norm. Depending on the task, you might want to normalize the
+data globally (at the level of the training set) or independently
+for each patch, or for each feature (pixel in this case).
+
+You will need to be able to slice these arrays, to make use of
+efficient numeric routines (ala Matlab). If you can't figure out how
+to do it, check out this script: `../1_supervised/A_slicing.lua`.
+
+Last little challenge, try to display a subset of the training
+images. By now you should have seen enough stuff to be able to 
+do that.

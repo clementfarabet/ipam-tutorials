@@ -68,6 +68,15 @@ In the interest of keeping memory usage under control you should make sure to
 *shut down* the notebooks that you are not using by pressing that notebook's
 "Shutdown" button on the "IPython Dashboard".
 
+### Windows instructions
+
+I don't know how to run ssh from windows. If you can do it, please let us know
+now! If you also do not know how, ask your neighbour to run the steps above
+for you. Once you have an ipython notebook running, you interact with it
+directly through your browser anyway.
+
+
+
 ## Updating and Sychronizing your files with `git`
 
 While you work in the IPython notebooks, you might want to *save* your changes
@@ -89,14 +98,6 @@ at this point, or (b) [resolve the
 conflict](http://genomewiki.ucsc.edu/index.php/Resolving_merge_conflicts_in_Git),
 or (c) forget about merging the file versions from github (for the time being) by
 typing `git reset --hard`.
-
-
-### Windows instructions
-
-I don't know how to run ssh from windows. If you can do it, please let us know
-now! If you also do not know how, ask your neighbour to run the steps above
-for you. Once you have an ipython notebook running, you interact with it
-directly through your browser anyway.
 
 
 ## Installation and Requirements

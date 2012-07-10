@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import theano
 from theano import tensor
 from theano.tensor.nnet.conv import conv2d
+import theano.tensor.signal.downsample
 
 
 def scale_to_unit_interval(ndar, eps=1e-8):
@@ -252,6 +253,14 @@ def theano_fbncc(img4, img_shp, filters4, filters4_shp,
     if dtype is None:
         dtype = img4.dtype
 
+    beta = tensor.as_tensor_variable(beta).astype(dtype)
+    shift3 = tensor.as_tensor_variable(shift3).astype(dtype)
+
+    if filters4.dtype != img4.dtype:
+        raise TypeError('dtype mistmatch', (img4.dtype, filters4.dtype))
+    if dtype != img4.dtype:
+        raise TypeError('dtype mistmatch', (dtype, filters4.dtype))
+
     # -- kernel Number, Features, Rows, Cols
     kN, kF, kR, kC = filters4_shp
 
@@ -268,12 +277,15 @@ def theano_fbncc(img4, img_shp, filters4, filters4_shp,
 
     # -- adjust the sum of squares to reflect remove_mean
     p_c_sq = p_ssq - (p_mean ** 2) * (kF * kR * kC)
+    assert p_c_sq.dtype == dtype
     if hard_beta:
         p_div2 = tensor.maximum(p_c_sq, beta)
     else:
         p_div2 = p_c_sq + beta
 
-    p_scale = 1.0 / tensor.sqrt(p_div2)
+    assert p_div2.dtype == dtype
+    p_scale = tensor.as_tensor_variable(1.0).astype(dtype) / tensor.sqrt(p_div2)
+    assert p_scale.dtype == dtype
 
     # --
     # from whitening, we have a shift and linear transform (P)
@@ -317,8 +329,8 @@ def theano_fbncc(img4, img_shp, filters4, filters4_shp,
         return z
 
 
-_fbncc_cache = {}
-def fbncc(img4, kern4):
+_theano_fn_cache = {}
+def _fbncc(img4, img4_shp, kern4, kern4_shp):
     """
     Return filterbank normalized cross-correlation
 
@@ -332,23 +344,68 @@ def fbncc(img4, kern4):
     kern4 - kernels tensor of shape (#kernels, #channels, #height, #width)
 
     """
-    assert img4.ndim == kern4.ndim == 4
-    key = img4.shape + kern4.shape + (img4.dtype, kern4.dtype)
-    if key not in _fbncc_cache:
-        s_i = theano.tensor.tensor(dtype=img4.dtype, broadcastable=(1, 1, 0, 0))
-        s_k = theano.tensor.tensor(dtype=kern4.dtype, broadcastable=(0, 1, 0, 0))
+    n_examples, n_channels, n_rows, n_cols = img4.shape
+    n_filters, n_channels2, height, width = kern4.shape
+    key = ('fbncc', img4.shape, kern4.shape, img4.dtype, kern4.dtype)
+    if n_channels != n_channels2:
+        raise ValueError('n_channels must match in images and kernels')
+
+    if key not in _theano_fn_cache:
+        s_i = theano.tensor.tensor(
+                dtype=img4.dtype,
+                broadcastable=(
+                    n_examples == 1,
+                    n_channels == 1,
+                    n_rows == 1,
+                    n_cols == 1))
+        s_k = theano.tensor.tensor(
+                dtype=kern4.dtype,
+                broadcastable=(
+                    n_filters == 1,
+                    n_channels == 1,
+                    n_rows == 1,
+                    n_cols == 1))
         s_y = theano_fbncc(
                 s_i, img4.shape,
                 s_k, kern4.shape,
                 )
 
         f = theano.function([s_i, s_k], s_y)
-        _fbncc_cache[key] = f
+        _theano_fn_cache[key] = f
     else:
-        f = _fbncc_cache[key]
+        f = _theano_fn_cache[key]
     return f(img4, kern4)
+_fbncc.__theano_op__ = theano_fbncc
+
+def fbncc(img4, kern4):
+    # this call is done in this funny way so that PyAutoDiff can work
+    return _fbncc(img4, img4.shape, kern4, kern4.shape)
 
 
-def max_pool(img4):
-    raise NotImplementedError()
+def max_pool_2d_2x2(img4):
+    key = ('maxpool', img4.shape, img4.dtype)
+
+    n_examples, n_channels, n_rows, n_cols = img4.shape
+
+    if key not in _theano_fn_cache:
+        s_i = theano.tensor.tensor(
+                dtype=img4.dtype,
+                broadcastable=(
+                    n_examples == 1,
+                    n_channels == 1,
+                    n_rows == 1,
+                    n_cols == 1))
+        s_y = theano.tensor.signal.downsample.max_pool_2d(
+                s_i, (2, 2), ignore_border=False)
+        f = theano.function([s_i], s_y)
+        _theano_fn_cache[key] = f
+    else:
+        f = _theano_fn_cache[key]
+    return f(img4)
+
+
+# N.B. if kwargs are added to fbncc they must match theano_fbncc exactly
+#      for PyAutoDiff to work.
+max_pool_2d_2x2.__theano_op__ = (lambda img4:
+    theano.tensor.signal.downsample.max_pool_2d(img4, (2, 2), False))
 

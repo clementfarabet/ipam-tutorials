@@ -64,7 +64,16 @@ the fraction of an hour allotted to the practical sessions, but they should be
 relatively stand-alone documents, and you are encouraged to come back to them
 and work through them at your own pace.
 
-If make changes to the notebooks for whatever reason, we will update the central
+In the interest of keeping memory usage under control you should make sure to
+*shut down* the notebooks that you are not using by pressing that notebook's
+"Shutdown" button on the "IPython Dashboard".
+
+## Updating and Sychronizing your files with `git`
+
+While you work in the IPython notebooks, you might want to *save* your changes
+so that they will still be there after you log out.
+
+If we make changes to the notebooks, we will update the central
 github repository, and you will have the *choice* of whether you want to use the
 new versions or not. If you want to use the new versions type:
 

@@ -23,7 +23,9 @@
 <p>For now, we have set up a server (Amazon EC2), which contains a pre-built version of Torch, and all the packages necessary to run the demos/tutorials provided. The IP number of the server will change periodically, so we'll just tell you what it is when you need it.</p>
 <p>We will provide you with an identity file <code>ipam_identity.pem</code> file, which you'll use to log into the EC2 machine. Once you've got the <code>ipam_identity.pem</code> file and the <code>ADDRESS</code> of the server, pick a unique <code>USERNAME</code>, for your use within the &quot;student&quot; account, and if you have a linux or OSX computer type:</p>
 <pre class="sourceCode bash"><code class="sourceCode bash"><span class="co"># connect to our EC2 instance &quot;ADDRESS&quot;</span>
-<span class="kw">ssh</span> -XC -i ipam_identity.pem student@ADDRESS
+<span class="kw">ssh</span> -XC -i ipam_identity student@23.23.148.41
+
+<span class="co"># it&#39;s important to use the -XC flags, to enable graphics</span>
 
 <span class="co"># set up a workspace for yourself</span>
 <span class="kw">mkdir</span> -p USERNAME/

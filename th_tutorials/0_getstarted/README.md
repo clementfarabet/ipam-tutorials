@@ -43,7 +43,9 @@ account, and if you have a linux or OSX computer type:
 
 ```bash
 # connect to our EC2 instance "ADDRESS"
-ssh -XC -i ipam_identity.pem student@ADDRESS
+ssh -XC -i ipam_identity student@23.23.148.41
+
+# it's important to use the -XC flags, to enable graphics
 
 # set up a workspace for yourself
 mkdir -p USERNAME/

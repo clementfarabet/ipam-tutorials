@@ -12,15 +12,20 @@ from autodiff import fmin_sgd, fmin_l_bfgs_b
 from util import hinge
 from util import ova_svm_prediction, ova_svm_cost
 from util import mlp_prediction, mlp_cost
+from util import fbncc  # -- filterbank normalized cross-correlation
+
+def tanh_conv_layer(W_fb, b_fb, imgs):
+    # -- similar to tanh_layer, but we used fbncc instead of dot
+    return np.tanh(fbncc(imgs, W_fbncc) + b_fb)
 
 
 # -- top-level parameters of this script
-dtype = 'float32'  # XXX
-n_examples = 50000
+dtype = 'float32'  # helps save memory and go faster
+n_examples = 10000
 online_batch_size = 1
-online_epochs = 2
-batch_epochs = 30
-lbfgs_m = 20
+
+n_hidden
+
 n_mlp_hiddens = [200]  # -- one entry per hidden layer
 
 # -- load and prepare the data set

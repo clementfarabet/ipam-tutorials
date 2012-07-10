@@ -10,6 +10,10 @@ image from a set of samples or weights.
 import numpy as np
 import matplotlib.pyplot as plt
 
+import theano
+from theano import tensor
+from theano.tensor.nnet.conv import conv2d
+
 
 def scale_to_unit_interval(ndar, eps=1e-8):
     """ Scales all values in the ndarray ndar to be between 0 and 1 """
@@ -203,4 +207,148 @@ def mlp_prediction(V, c, W, b, x):
 def mlp_cost(V, c, W, b, x, y1):
     h = tanh_layer(V, c, x)
     return ova_svm_cost(W, b, h, y1)
+
+
+def theano_fbncc(img4, img_shp, filters4, filters4_shp,
+        remove_mean=True, beta=1e-8, hard_beta=True,
+        shift3=0, dtype=None, ret_shape=False):
+    """
+    Channel-major filterbank normalized cross-correlation
+
+    For each valid-mode patch (p) of the image (x), this transform computes
+
+    p_c = (p - mean(p)) if (remove_mean) else (p)
+    qA = p_c / sqrt(var(p_c) + beta)           # -- Coates' sc_vq_demo
+    qB = p_c / sqrt(max(sum(p_c ** 2), beta))  # -- Pinto's lnorm
+
+    There are two differences between qA and qB:
+
+    1. the denominator contains either addition or max
+
+    2. the denominator contains either var or sum of squares
+
+    The first difference corresponds to the hard_beta parameter.
+    The second difference amounts to a decision about the scaling of the
+    output, because for every function qA(beta_A) there is a function
+    qB(betaB) that is identical, except for a multiplicative factor of
+    sqrt(N - 1).
+
+    I think that in the context of stacked models, the factor of sqrt(N-1) is
+    undesirable because we want the dynamic range of all outputs to be as
+    similar as possible. So this function implements qB.
+
+    Coates' denominator had var(p_c) + 10, so what should the equivalent here
+    be?
+    p_c / sqrt(var(p_c) + 10)
+    = p_c / sqrt(sum(p_c ** 2) / (108 - 1) + 10)
+    = p_c / sqrt((sum(p_c ** 2) + 107 * 10) / 107)
+    = sqrt(107) * p_c / sqrt((sum(p_c ** 2) + 107 * 10))
+
+    So Coates' pre-processing has beta = 1070, hard_beta=False. This function
+    returns a result that is sqrt(107) ~= 10 times smaller than the Coates
+    whitening step.
+
+    """
+    if dtype is None:
+        dtype = img4.dtype
+
+    # -- kernel Number, Features, Rows, Cols
+    kN, kF, kR, kC = filters4_shp
+
+    # -- patch-wise sums and sums-of-squares
+    box_shp = (1, kF, kR, kC)
+    box = tensor.addbroadcast(theano.shared(np.ones(box_shp, dtype=dtype)), 0)
+    p_sum = conv2d(img4, box, image_shape=img_shp, filter_shape=box_shp)
+    p_mean = 0 if remove_mean else p_sum / (kF * kR * kC)
+    p_ssq = conv2d(img4 ** 2, box, image_shape=img_shp, filter_shape=box_shp)
+
+    # -- this is an important variable in the math above, but
+    #    it is not directly used in the fused lnorm_fbcorr
+    # p_c = x[:, :, xs - xs_inc:-xs, ys - ys_inc:-ys] - p_mean
+
+    # -- adjust the sum of squares to reflect remove_mean
+    p_c_sq = p_ssq - (p_mean ** 2) * (kF * kR * kC)
+    if hard_beta:
+        p_div2 = tensor.maximum(p_c_sq, beta)
+    else:
+        p_div2 = p_c_sq + beta
+
+    p_scale = 1.0 / tensor.sqrt(p_div2)
+
+    # --
+    # from whitening, we have a shift and linear transform (P)
+    # for each patch (as vector).
+    #
+    # let m be the vector [m m m m] that replicates p_mean
+    # let a be the scalar p_scale
+    # let x be an image patch from s_imgs
+    #
+    # Whitening means applying the affine transformation
+    #   (c - M) P
+    # to contrast-normalized patch c = a (x - m),
+    # where a = p_scale and m = p_mean.
+    #
+    # We also want to extract features in dictionary
+    #
+    #   (c - M) P
+    #   = (a (x - [m,m,m]) - M) P
+    #   = (a x - a [m,m,m] - M) P
+    #   = a x P - a [m,m,m] P - M P
+    #
+
+    Px = conv2d(img4, filters4[:, :, ::-1, ::-1],
+            image_shape=img_shp,
+            filter_shape=filters4_shp,
+            border_mode='valid')
+
+    s_P_sum = filters4.sum(axis=[1, 2, 3])
+    Pmmm = p_mean * s_P_sum.dimshuffle(0, 'x', 'x')
+    if shift3:
+        s_PM = (shift3 * filters4).sum(axis=[1, 2, 3])
+        z = p_scale * (Px - Pmmm) - s_PM.dimshuffle(0, 'x', 'x')
+    else:
+        z = p_scale * (Px - Pmmm)
+
+    assert z.dtype == img4.dtype
+    z_shp = (img_shp[0], kN, img_shp[2] - kR + 1, img_shp[3] - kC + 1)
+    if ret_shape:
+        return z, z_shp
+    else:
+        return z
+
+
+_fbncc_cache = {}
+def fbncc(img4, kern4):
+    """
+    Return filterbank normalized cross-correlation
+
+    Output has shape
+    (#images, #kernels, #rows - #height + 1, #cols - #width + 1)
+
+    See `theano_fbncc` for full documentation of transform.
+
+    Parameters:
+    img4 - images tensor of shape (#images, #channels, #rows, #cols)
+    kern4 - kernels tensor of shape (#kernels, #channels, #height, #width)
+
+    """
+    assert img4.ndim == kern4.ndim == 4
+    key = img4.shape + kern4.shape + (img4.dtype, kern4.dtype)
+    if key not in _fbncc_cache:
+        s_i = theano.tensor.tensor(dtype=img4.dtype, broadcastable=(1, 1, 0, 0))
+        s_k = theano.tensor.tensor(dtype=kern4.dtype, broadcastable=(0, 1, 0, 0))
+        s_y = theano_fbncc(
+                s_i, img4.shape,
+                s_k, kern4.shape,
+                )
+
+        f = theano.function([s_i, s_k], s_y)
+        _fbncc_cache[key] = f
+    else:
+        f = _fbncc_cache[key]
+    return f(img4, kern4)
+
+
+def max_pool(img4):
+    raise NotImplementedError()
 

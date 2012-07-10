@@ -151,6 +151,7 @@ def show_filters(x, img_shape, tile_shape):
 
 
 def hinge(margin):
+    """Return elementwise hinge loss of margin ndarray"""
     return np.maximum(0, 1 - margin)
 
 
@@ -158,6 +159,7 @@ def ova_svm_prediction(W, b, x):
     """
     Return a vector of M integer predictions
 
+    Parameters:
     W : weight matrix of shape (N, L)
     b : bias vector of shape (L,)
     x : feature vector of shape (M, N)
@@ -169,6 +171,7 @@ def ova_svm_cost(W, b, x, y1):
     """
     Return a vector of M example costs using hinge loss
 
+    Parameters:
     W : weight matrix of shape (N, L)
     b : bias vector of shape (L,)
     x : feature vector of shape (M, N)
@@ -178,3 +181,26 @@ def ova_svm_cost(W, b, x, y1):
     margin = y1 * (np.dot(x, W) + b)
     cost = hinge(margin).mean(axis=0).sum()
     return cost
+
+
+def tanh_layer(V, c, x):
+    """
+    Return layer output matrix of shape (#examples, #outputs)
+
+    Parameters:
+    V : weight matrix of shape (#inputs, #outputs)
+    c : bias vector of shape (#outputs,)
+    x : feature matrix of shape (#examples, #inputs)
+    """
+    return np.tanh(np.dot(x, V) + c)
+
+
+def mlp_prediction(V, c, W, b, x):
+    h = tanh_layer(V, c, x)
+    return ova_svm_prediction(W, b, h)
+
+
+def mlp_cost(V, c, W, b, x, y1):
+    h = tanh_layer(V, c, x)
+    return ova_svm_cost(W, b, h, y1)
+

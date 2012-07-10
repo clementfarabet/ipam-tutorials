@@ -37,7 +37,7 @@ and if you have a linux or OSX computer type:
     # Now point a web browser at http://localhost:PORT to use the tutorials
 
 
-On subsequent logins, you only need to do some of those step:
+On subsequent logins, you only need to do the following steps:
 
     # SUBSEQUENT LOGIN INSTRUCTIONS
     #

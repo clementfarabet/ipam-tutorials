@@ -665,3 +665,147 @@ If time allows, you can try to replace this dataset by other datasets, such
 as MNIST, which you should already have working (from day 1). Try to think
 about what you have to change/adapt to work with other types of images
 (non RGB, binary, infrared?).
+
+Tips, going futher
+------------------
+
+### Tips and tricks for MLP training
+
+There are several hyper-parameters in the above code, which are not (and,
+generally speaking, cannot be) optimized by gradient descent.
+The design of outer-loop algorithms for optimizing them is a topic of ongoing
+research.
+Over the last 25 years, researchers have devised various rules of thumb for choosing them.
+A very good overview of these tricks can be found in [Efficient
+BackProp](http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf) by Yann LeCun,
+Leon Bottou, Genevieve Orr, and Klaus-Robert Mueller. Here, we summarize
+the same issues, with an emphasis on the parameters and techniques that we
+actually used in our code.
+
+### Tips and Tricks: Nonlinearity
+
+Which non-linear activation function should you use in a neural network?
+Two of the most common ones are the logistic sigmoid and the tanh functions.
+For reasons explained in [Section 4.4](http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf), nonlinearities that
+are symmetric around the origin are preferred because they tend to produce
+zero-mean inputs to the next layer (which is a desirable property).
+Empirically, we have observed that the tanh has better convergence properties.
+
+### Tips and Tricks: Weight initialization
+
+At initialization we want the weights to be small enough around the origin
+so that the activation function operates near its linear regime, where gradients are
+the largest. Otherwise, the gradient signal used for learning is attenuated by
+each layer as it is propagated from the classifier towards the inputs.
+Proper weight initialization is implemented in all the modules provided in `nn`, 
+so you don't have to worry about it. Each module has a `reset()` method,
+which initializes the parameter with a uniform distribution that takes 
+into account the fanin/fanout of the module. It's called by default when
+you create a new module, but you can call it at any time to reset the weights.
+
+### Tips and Tricks: Learning Rate
+
+Optimization by stochastic gradient descent is very sensitive to the step 
+size or _learning rate_. There is a great deal of literature on how to choose 
+a the learning rate, and how to change it during optimization. A good
+heuristic is to use a `lr_0/(1+t*decay)` decay on the learning, where you
+set the decay to a value that's inversely proportional to the number of 
+samples you want to see with an almost flat learning rate, before starting
+decaying exponentially.
+
+[Section 4.7](http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf) details
+procedures for choosing a learning rate for each parameter (weight) in our
+network and for choosing them adaptively based on the error of the classifier.
+
+### Tips and Tricks: Number of hidden units
+
+The number of hidden units that gives best results is dataset-dependent.
+Generally speaking, the more complicated the input distribution is, the more
+capacity the network will require to model it, and so the larger the number of 
+hidden units that will be needed.
+
+### Tips and Tricks: Norm Regularization
+
+Typical values to try for the L1/L2 regularization parameter are 10^-2 or 10^-3.
+It is usually only useful to regularize the topmost layers of the MLP (closest
+to the classifier), if not the classifier only. An L2 regularization is really
+easy to implement, `optim.sgd` provides an implementation, but it's global
+to the parameters, which is typically not a good idea. Instead, after each call
+to `optim.sgd`, you can simply apply the regularization on the subset of weights 
+of interest:
+
+```lua
+-- model:
+model = nn.Sequential()
+model:add( nn.Linear(100,200) )
+model:add( nn.Tanh() )
+model:add( nn.Linear(200,10) )
+
+-- weights to regularize:
+reg = {}
+reg[1] = model:get(3).weight
+reg[2] = model:get(3).bias
+
+-- optimization:
+while true do
+   -- ...
+   optim.sgd(...)
+
+   -- after each optimization step (gradient descent), regularize weights
+   for _,w in ipairs(reg) do
+      w:add(-weightDecay, w)
+   end
+end
+```
+
+### Tips and tricks for ConvNet training
+
+ConvNets are especially tricky to train, as they add even more hyper-parameters than
+a standard MLP. While the usual rules of thumb for learning rates and regularization 
+constants still apply, the following should be kept in mind when optimizing ConvNets.
+
+#### Number of filters
+
+Since feature map size decreases with depth, layers near the input layer will 
+tend to have fewer filters while layers higher up can have much more. In fact, to
+equalize computation at each layer, the product of the number of features
+and the number of pixel positions is typically picked to be roughly constant
+across layers. To preserve the information about the input would require
+keeping the total number of activations (number of feature maps times
+number of pixel positions) to be non-decreasing from one layer to the next
+(of course we could hope to get away with less when we are doing supervised
+learning). The number of feature maps directly controls capacity and so
+that depends on the number of available examples and the complexity of 
+the task.
+
+#### Filter Shape
+
+Common filter shapes found in the literature vary greatly, usually based on
+the dataset. Best results on MNIST-sized images (28x28) are usually in the 
+5x5 range on the first layer, while natural image datasets (often with hundreds 
+of pixels in each dimension) tend to use larger first-layer filters of shape 
+7x7 to 12x12.
+
+The trick is thus to find the right level of "granularity" (i.e. filter
+shapes) in order to create abstractions at the proper scale, given a
+particular dataset.
+
+It's also possible to use multiscale receptive fields, to allow the ConvNet
+to have a much larger receptive field, yet keeping its computational complexity
+low. This type of procedure was proposed for scene parsing (where context
+is crucial to recognize objects) in 
+[this paper](http://data.clement.farabet.net/pubs/icml12.pdf).
+
+#### Pooling Shape
+
+Typical values for pooling are 2x2. Very large input images may warrant
+4x4 pooling in the lower-layers. Keep in mind however, that this will reduce the
+dimension of the signal by a factor of 16, and may result in throwing away too
+much information. In general, the pooling region is independent from the stride
+at which you discard information. In Torch, all the pooling modules (L2, average, 
+max) have separate parameters for the pooling size and the strides, for
+example:
+
+```lua
+nn.SpatialMaxPooling(pool_x, pool_y, stride_x, stride_y)
+```

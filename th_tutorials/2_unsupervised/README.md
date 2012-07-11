@@ -106,6 +106,35 @@ module:accGradParameters(input, input)
 -- the trainable parameters x
 ```
 
+One serious potential issue with auto-encoders is that if there is no other
+constraint besides minimizing the reconstruction error,
+then an auto-encoder with n inputs and an encoding of dimension at least n could potentially 
+just learn the identity function, and fail to differentiate
+test examples (from the training distribution) from other input configurations.
+
+Surprisingly, experiments reported in `Bengio 2007` nonetheless
+suggest that in practice, when trained with stochastic gradient descent, 
+non-linear auto-encoders with more hidden units
+than inputs (called overcomplete) yield useful representations
+(in the sense of classification error measured on a network taking this
+representation in input). A simple explanation is based on the
+observation that stochastic gradient
+descent with early stopping is similar to an L2 regularization of the
+parameters. To achieve perfect reconstruction of continuous
+inputs, a one-hidden layer auto-encoder with non-linear hidden units
+(exactly like in the above code)
+needs very small weights in the first (encoding) layer (to bring the non-linearity of
+the hidden units in their linear regime) and very large weights in the
+second (decoding) layer.
+
+With binary inputs, very large weights are also needed to completely minimize the 
+reconstruction error. Since the implicit or explicit regularization makes it difficult 
+to reach large-weight solutions, the optimization algorithm finds encodings which
+only work well for examples similar to those in the training set, which is
+what we want. It means that the representation is exploiting statistical
+regularities present in the training set, rather than learning to
+replicate the identity function.
+
 #### Exercises:
 
 There are 3 main parameters you can play with: the input size, the output
@@ -117,6 +146,10 @@ size, and the type of non-linearity you use.
 
   * observe the effect of the output size, and why not compare the results
   with PCA?
+
+  * finally, as noted above, regularization is very important for simple
+  autoencoders. Can you implement an L2 regularization? We saw an example
+  of regularizaiton in the previous tutorial on supervised training.
 
 The autoencoder code I provide here is very simple and naive. A natural
 extension of autoencoders are denoising autoencoders, where the idea is
@@ -284,6 +317,7 @@ Ok, that's it, given some training data, this code will loop over all samples, a
 #### Exercises:
 
 As usual, we have access to several optimization techniques, and can set the batch size. How does the batch size affect the reconstruction error?
+
 
 Step 3: Second-order Information
 --------------------------------

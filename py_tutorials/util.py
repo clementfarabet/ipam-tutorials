@@ -409,3 +409,150 @@ def max_pool_2d_2x2(img4):
 max_pool_2d_2x2.__theano_op__ = (lambda img4:
     theano.tensor.signal.downsample.max_pool_2d(img4, (2, 2), False))
 
+
+def contrast_normalize(patches, remove_mean, beta, hard_beta):
+    X = patches
+    if X.ndim != 2:
+        raise TypeError('contrast_normalize requires flat patches')
+    if remove_mean:
+        xm = X.mean(1)
+    else:
+        xm = X[:,0] * 0
+    Xc = X - xm[:, None]
+    l2 = (Xc * Xc).sum(axis=1)
+    if hard_beta:
+        div2 = np.maximum(l2, beta)
+    else:
+        div2 = l2 + beta
+    X = Xc / np.sqrt(div2[:, None])
+    return X
+
+
+def random_patches(images, N, R, C, rng):
+    """Return a stack of N uniformly drawn image patches of size (N, channels, R, C)
+
+    Parameters:
+    images - 4-tensor of shape (n_images, channels, rows, cols)
+    N - integer number of patches to return
+    R - rows per patch
+    C - columns per patch
+    rng - numpy RandomState
+
+    """
+    channel_major=True
+    if channel_major:
+        n_imgs, iF, iR, iC = images.shape
+        rval = np.empty((N, iF, R, C), dtype=images.dtype)
+    else:
+        n_imgs, iR, iC, iF = images.shape
+        rval = np.empty((N, R, C, iF), dtype=images.dtype)
+    srcs = rng.randint(n_imgs, size=N)
+    roffsets = rng.randint(iR - R, size=N)
+    coffsets = rng.randint(iC - C, size=N)
+    # TODO: this can be done with one advanced index right?
+    for rv_i, src_i, ro, co in zip(rval, srcs, roffsets, coffsets):
+        if channel_major:
+            rv_i[:] = images[src_i, :, ro: ro + R, co : co + C]
+        else:
+            rv_i[:] = images[src_i, ro: ro + R, co : co + C]
+    return rval
+
+
+def patch_whitening_filterbank_X(patches, o_ndim, gamma,
+        remove_mean, beta, hard_beta,
+        ):
+    """
+    patches - Image patches (can be uint8 pixels or floats)
+    o_ndim - 2 to get matrix outputs, 4 to get image-stack outputs
+    gamma - non-negative real to boost low-principle components
+
+    remove_mean - see contrast_normalize
+    beta - see contrast_normalize
+    hard_beta - see contrast_normalize
+
+    Returns: M, P, X
+        M - mean of contrast-normalized patches
+        P - whitening matrix / filterbank for contrast-normalized patches
+        X - contrast-normalized patches
+
+    """
+    # Algorithm from Coates' sc_vq_demo.m
+
+    # -- patches -> column vectors
+    X = patches.reshape(len(patches), -1).astype('float64')
+
+    X = contrast_normalize(X,
+            remove_mean=remove_mean,
+            beta=beta,
+            hard_beta=hard_beta)
+
+    # -- ZCA whitening (with low-pass)
+    print 'patch_whitening_filterbank_X starting ZCA'
+    M, _std = mean_and_std(X)
+    Xm = X - M
+    assert Xm.shape == X.shape
+    print 'patch_whitening_filterbank_X starting ZCA: dot', Xm.shape
+    C = dot_f64(Xm.T, Xm) / (Xm.shape[0] - 1)
+    print 'patch_whitening_filterbank_X starting ZCA: eigh'
+    D, V = np.linalg.eigh(C)
+    print 'patch_whitening_filterbank_X starting ZCA: dot', V.shape
+    P = dot_f32(np.sqrt(1.0 / (D + gamma)) * V, V.T)
+
+    # -- return to image space
+    if o_ndim == 4:
+        M = M.reshape(patches.shape[1:])
+        P = P.reshape((P.shape[0],) + patches.shape[1:])
+        X = X.reshape((len(X),) + patches.shape[1:])
+    elif o_ndim == 2:
+        pass
+    else:
+        raise ValueError('o_ndim not in (2, 4)', o_ndim)
+
+    print 'patch_whitening_filterbank_X -> done'
+    return M, P, X
+
+
+def fb_whitened_projections(patches, pwfX, n_filters, rseed, dtype):
+    """
+    pwfX is the output of patch_whitening_filterbank_X with reshape=False
+
+    M, and fb will be reshaped to match elements of patches
+    """
+    M, P, patches_cn = pwfX
+    if patches_cn.ndim != 2:
+        raise TypeError('wrong shape for pwfX args, should be flattened',
+                patches_cn.shape)
+    rng = np.random.RandomState(rseed)
+    D = rng.randn(n_filters, patches_cn.shape[1])
+    D = D / (np.sqrt((D ** 2).sum(axis=1))[:, None] + 1e-20)
+    fb = dot_f32(D, P)
+    fb.shape = (n_filters,) + patches.shape[1:]
+    M.shape = patches.shape[1:]
+    M = M.astype(dtype)
+    fb = fb.astype(dtype)
+    if fb.size == 0:
+        raise ValueError('filterbank had size 0')
+    return M, fb
+
+
+def fb_whitened_patches(patches, pwfX, n_filters, rseed, dtype):
+    """
+    pwfX is the output of patch_whitening_filterbank_X with reshape=False
+
+    M, and fb will be reshaped to match elements of patches
+
+    """
+    M, P, patches_cn = pwfX
+    rng = np.random.RandomState(rseed)
+    d_elems = rng.randint(len(patches_cn), size=n_filters)
+    D = dot_f64(patches_cn[d_elems] - M, P)
+    D = D / (np.sqrt((D ** 2).sum(axis=1))[:, None] + 1e-20)
+    fb = dot_f32(D, P)
+    fb.shape = (n_filters,) + patches.shape[1:]
+    M.shape = patches.shape[1:]
+    M = M.astype(dtype)
+    fb = fb.astype(dtype)
+    if fb.size == 0:
+        raise ValueError('filterbank had size 0')
+    return M, fb
+

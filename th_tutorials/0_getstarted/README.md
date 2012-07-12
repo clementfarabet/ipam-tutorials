@@ -28,6 +28,14 @@ packages (_image_, _nnx_, _unsup_). If you want to install Torch on your machine
 [here](http://www.torch.ch/manual/install/index). A more condensed version can 
 also be found [here](http://code.cogbits.com/).
 
+Virtual Machine with Torch7 pre-installed
+-----------------------------------------
+
+I'm distributing a virtual machine, with Ubuntu 12, and Torch7 pre-installed,
+[here](http://data.neuflow.org/share/Torch7.ova). You can import this virtual
+machine using [VirtualBox](https://www.virtualbox.org/). That's probably
+the best way to get started with Torch7.
+
 EC2 Machine: Pre-built Torch for the tutorials
 ----------------------------------------------
 

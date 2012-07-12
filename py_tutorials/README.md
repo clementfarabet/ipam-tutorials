@@ -1,4 +1,3 @@
-
 The IPython Deep Learning Tutorials
 ===================================
 
@@ -105,6 +104,10 @@ typing `git reset --hard`.
 If you want to set up these tutorials to run on your laptop or another
 computer, you'll need a fairly standard scientific Python stack, with a few
 additional non-standard packages.
+
+The installation instructions assume you have Python and the pip package installation command.
+On linux, your distribution's package-management software should be used for these things.
+On OSX I think [these instructions will set up pip](http://darklaunch.com/2011/11/24/osx-install-pip-virtualenv-virtualenvwrapper-on-mac).
 
 The following recipe should do the trick:
 

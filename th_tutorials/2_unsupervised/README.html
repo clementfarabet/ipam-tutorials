@@ -25,6 +25,7 @@ code > span.fu { color: #06287e; }
 code > span.er { color: #ff0000; font-weight: bold; }
   </style>
   <link rel="stylesheet" href="../style.css" type="text/css" />
+  <script src="https://d3eoax9i5htok0.cloudfront.net/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 </head>
 <body>
 <h1 id="unsupervised-learning">Unsupervised Learning</h1>
@@ -50,19 +51,19 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <h2 id="step-1-models-loss-functions">Step 1: Models &amp; Loss functions</h2>
 <h3 id="basic-autoencoders">Basic Autoencoders</h3>
 <p>An autoencoder is a model that takes a vector input y, maps it into a hidden representation z (code) using an encoder which typically has this form:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/auto_encoder.png" /><p class="caption"></p>
-</div>
-<p>where s is a non-linear activation function (the tanh function is a common choice), W_e the encoding matrix and b_e a vector of bias parameters.</p>
+<p>\[
+z = \text{s}(W_e y + b_e)
+\]</p>
+<p>where \(\text{s}\) is a non-linear activation function (the tanh function is a common choice), W_e the encoding matrix and b_e a vector of bias parameters.</p>
 <p>The hidden representation z, often called code, is then mapped back into the space of y, using a decoder of this form:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/auto_decoder.png" /><p class="caption"></p>
-</div>
+<p>\[
+\tilde{y} = W_d z + b_d
+\]</p>
 <p>where W_d is the decoding matrix and b_d a vector of bias parameters.</p>
 <p>The goal of the autoencoder is to minimize the reconstruction error, which is represented by a distance between y and y~. The most common type of distance is the mean squared error:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/mse_loss.png" /><p class="caption"></p>
-</div>
+<p>\[
+l(y,\tilde{y}) = \| y - \tilde{y} \|_2^2 = \| y - (W_dz+b_d) \|_2^2
+\]</p>
 <p>The code z typically has less dimensions than y, which forces the autoencoder to learn a good representation of the data. In its simplest form (linear), an autoencoder learns to project the data onto its first principal components. If the code z has as many components as y, then no compression is required, and the model could typically end up learning the identity function. Now if the encoder has a non-linear form (using a tanh, or using a multi-layered model), then the autoencoder can learn a potentially more powerful representation of the data.</p>
 <p>To describe the model, we use the <em>unsup</em> package, which provides templates to build autoencoders.</p>
 <p>The first step is to describe an encoder, which we can do by using any of the modules available in nn:</p>
@@ -132,25 +133,25 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <p>In this tutorial we propose a simple and efficient algorithm to learn overcomplete basis functions, by introducing a particular form of autoencoder. After training, the model also provides a fast and smooth approximator to the optimal representation, achieving even better accuracy than exact sparse coding algorithms on visual object recognition tasks.</p>
 <h4 id="sparse-coding">Sparse Coding</h4>
 <p>Finding a representation z in R^m for a given signal y in R^n by linear combination of an overcomplete set of basis vectors, columns of matrix B with m &gt; n, has infinitely many solutions. In optimal sparse coding, the problem is formulated as:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/sparse_coding.png" /><p class="caption"></p>
-</div>
+<p>\[
+\min \| z \|_0 \quad \text{s.t.} \quad y = Bz
+\]</p>
 <p>where the l0 norm is defined as the number of non-zero elements in a given vector. This is a combinatorial problem, and a common approximation of it is the following optimization problem:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/sparse_coding_optim.png" /><p class="caption"></p>
-</div>
+<p>\[
+l(y,z;B) = \frac{1}{2} \| y - Bz \|_2^2 + \lambda \| z \|_1
+\]</p>
 <p>This particular formulation, called Basis Pursuit Denoising, can be seen as minimizing an objective that penalizes the reconstruction error using a linear basis set and the sparsity of the corresponding representation. While this formulation is nice, inference requires running some sort of iterative minimization algorithm that is always computationally expensive. In the following we present a predictive version of this algorithm, based on an autoencoder formulation, which yields fixed-time, and fast inference.</p>
 <h4 id="linear-psd">Linear PSD</h4>
 <p>In order to make inference efficient, we train a non-linear regressor that maps input signals y to sparse representations z. We consider the following nonlinear mapping:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/psd_encoder.png" /><p class="caption"></p>
-</div>
+<p>\[
+f(y;g,W,d) = g \tanh(Wy+d)
+\]</p>
 <p>where W is a weight trainable matrix, d a trainable vector of biases, and g a vector of gains. We want to train this nonlinear mapping as a predictor for the optimal solution to the sparse coding algorithm presented in the previsous section.</p>
 <p>The following loss function, called predictive sparse decomposition, can help us achieve such a goal:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/psd_loss.png" /><p class="caption"></p>
-</div>
-<p>The first two terms are the basic sparse coding presented above, while the 3rd term is our predictive sparse regressor. Minimizing this loss yields an encoder that produces sparse decompositions of the input signal.</p>
+<p>\[
+l(y,z;b,g,W,d) = \| y - Bz \|_2^2 + \lambda \| z \|_1 + \alpha \| z - f(y;g,W,d) \|_2^2
+\]</p>
+<p>The first two terms are the basic sparse coding presented above, while the third term is our predictive sparse regressor. Minimizing this loss yields an encoder that produces sparse decompositions of the input signal.</p>
 <p>With the unsup package, this can be implemented very simply.</p>
 <p>We define an encoder first:</p>
 <table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1

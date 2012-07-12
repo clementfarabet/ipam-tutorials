@@ -239,7 +239,9 @@ regression if used with a negative log-likelihood loss).
 Linear regression is the simplest type of model. It is parametrized by a weight matrix W, 
 and a bias vector b. Mathematically, it can be written as:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/linear_regression.png)
+$$
+y^n = Wx^n+b
+$$
 
 Using the _nn_ package, describing ConvNets, MLPs and other forms of sequential trainable models is really easy. All we have to do is create a top-level wrapper, which, as for the logistic regression, is going to be a sequential module, and then append modules into it. Implementing a simple linear model is therefore trivial:
 
@@ -252,7 +254,9 @@ model:add( nn.Linear(ninputs, noutputs) )
 A slightly more complicated model is the multi-layer neural network (MLP). This model is
 parametrized by two weight matrices, and two bias vectors:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/mlp_regression.png)
+$$
+y^n = W_2 \text{sigmoid}(W_1 x^n + b_1) + b_2
+$$
 
 where the function _sigmoid_ is typically the symmetric hyperbolic tangent function. Again,
 in Torch:
@@ -277,9 +281,9 @@ Trainable hierarchical vision models, and more generally image processing algori
 
 Typical ConvNets rely on a few basic modules:
 
-  * Filter bank layer: the input is a 3D array with n1 2D feature maps of size n2 x n3. Each component is denoted x_ijk, and each feature map is denoted xi. The output is also a 3D array, y composed of m1 feature maps of size m2 x m3. A trainable filter (kernel) k_ij in the filter bank has size l1 x l2 and connects input feature map x to output feature map y_j. The module computes y_j = b_j + i_{kij} * x_i where * is the 2D discrete convolution operator and b_j is a trainable bias parameter. Each filter detects a particular feature at every location on the input. Hence spatially translating the input of a feature detection layer will translate the output but leave it otherwise unchanged.
+  * Filter bank layer: the input is a 3D array with n1 2D feature maps of size n2 x n3. Each component is denoted $x_ijk$, and each feature map is denoted xi. The output is also a 3D array, y composed of m1 feature maps of size m2 x m3. A trainable filter (kernel) $k_ij$ in the filter bank has size l1 x l2 and connects input feature map x to output feature map $y_j$. The module computes $y_j = b_j + i_{kij} * x_i$ where $*$ is the 2D discrete convolution operator and $b_j$ is a trainable bias parameter. Each filter detects a particular feature at every location on the input. Hence spatially translating the input of a feature detection layer will translate the output but leave it otherwise unchanged.
 
-  * Non-Linearity Layer: In traditional ConvNets this simply consists in a pointwise tanh() sigmoid function applied to each site (ijk). However, recent implementations have used more sophisticated non-linearities. A useful one for natural image recognition is the rectified sigmoid Rabs: abs(g_i.tanh()) where g_i is a trainable gain parameter. The rectified sigmoid is sometimes followed by a subtractive and divisive local normalization N, which enforces local competition between adjacent features in a feature map, and between features at the same spatial location.
+  * Non-Linearity Layer: In traditional ConvNets this simply consists in a pointwise tanh() sigmoid function applied to each site (ijk). However, recent implementations have used more sophisticated non-linearities. A useful one for natural image recognition is the rectified sigmoid Rabs: $\abs(g_i.tanh())$ where $g_i$ is a trainable gain parameter. The rectified sigmoid is sometimes followed by a subtractive and divisive local normalization N, which enforces local competition between adjacent features in a feature map, and between features at the same spatial location.
 
   * Feature Pooling Layer: This layer treats each feature map separately. In its simplest instance, it computes the average values over a neighborhood in each feature map. Recent work has shown that more selective poolings, based on the LP-norm, tend to work best, with P=2, or P=inf (also known as max pooling). The neighborhoods are stepped by a stride larger than 1 (but smaller than or equal the pooling neighborhood). This results in a reduced-resolution output feature map which is robust to small variations in the location of features in the previous layer. The average operation is sometimes replaced by a max PM. Traditional ConvNets use a pointwise tanh() after the pooling layer, but more recent models do not. Some ConvNets dispense with the separate pooling layer entirely, but use strides larger than one in the filter bank layer to reduce the resolution. In some recent versions of ConvNets, the pooling also pools similar feature at the same location, in addition to the same feature at nearby locations.
 
@@ -347,11 +351,15 @@ Step 3: Loss Function
 
 Now that we have a model, we need to define a loss function to be minimized, across the entire training set:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/loss.png)
+$$
+L = \sum_n l(y^n,t^n)
+$$
 
 One of the simplest loss functions we can minimize is the mean-square error between the predictions (outputs of the model), and the groundtruth labels, across the entire dataset:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/mse_loss.png)
+$$
+l(y^n,t^n) = \frac{1}{2} \sum_i (y_i^n - t_i^n)^2
+$$
 
 or, in Torch:
 
@@ -363,11 +371,17 @@ The MSE loss is typically not a good one for classification, as it forces the mo
 
 Instead, a more commonly used, probabilistic objective is the negative log-likelihood. To minimize a negative log-likelihood, we first need to turn the predictions of our models into properly normalized log-probabilities. For the linear model, this is achieved by feeding the output units into a _softmax_ function, which turns the linear regression into a logistic regression:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/logistic_regression.png)
+$$
+P(Y=i|x^n,W,b) = \text{softmax}(Wx^n+be) \\
+\\
+P(Y=i|x^n,W,b) = \frac{ e^{Wx_i^n+b} }{ \sum_j e^{Wx_j^n+b} }
+$$
 
 As we're interested in classification, the final prediction is then achieved by taking the argmax of this distribution:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/logistic_argmax.png)
+$$
+y^n = \arg\max_i P(Y=i|x^n,W,b)
+$$
 
 in which case the ouput y is a scalar.
 
@@ -380,7 +394,9 @@ model:add( nn.LogSoftMax() )
 
 We want to maximize the likelihood of the correct (target) class, for each sample in the dataset. This is equivalent to minimizing the negative log-likelihood (NLL), or minimizing the cross-entropy between the predictions of our model and the targets (training data). Mathematically, the per-sample loss can be defined as:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/nll_loss.png)
+$$
+l(x^n,t^n) = -\log(P(Y=t^n|x^n,W,b))
+$$
 
 Given that our model already produces log-probabilities (thanks to the _softmax_), the loss is quite straightforward to estimate. In Torch, we use the _ClassNLLCriterion_, which expects its input as being a vector of log-probabilities, and the target as being an integer pointing to the correct class:
 

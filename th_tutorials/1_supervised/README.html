@@ -25,6 +25,7 @@ code > span.fu { color: #06287e; }
 code > span.er { color: #ff0000; font-weight: bold; }
   </style>
   <link rel="stylesheet" href="../style.css" type="text/css" />
+  <script src="https://d3eoax9i5htok0.cloudfront.net/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 </head>
 <body>
 <h1 id="supervised-learning">Supervised Learning</h1>
@@ -290,9 +291,9 @@ torch -i 2_model.lua -model mlp
 torch -i 2_model.lua -model convnet</code></pre></td></tr></table>
 <p>In this file, we describe three different models: convolutional neural networks (CNNs, or ConvNets), multi-layer neural networks (MLPs), and a simple linear model (which becomes a logistic regression if used with a negative log-likelihood loss).</p>
 <p>Linear regression is the simplest type of model. It is parametrized by a weight matrix W, and a bias vector b. Mathematically, it can be written as:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/linear_regression.png" /><p class="caption"></p>
-</div>
+<p>\[
+y^n = Wx^n+b
+\]</p>
 <p>Using the <em>nn</em> package, describing ConvNets, MLPs and other forms of sequential trainable models is really easy. All we have to do is create a top-level wrapper, which, as for the logistic regression, is going to be a sequential module, and then append modules into it. Implementing a simple linear model is therefore trivial:</p>
 <table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
 2
@@ -301,9 +302,9 @@ torch -i 2_model.lua -model convnet</code></pre></td></tr></table>
 <span class="kw">model</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Reshape<span class="ot">(</span><span class="kw">ninputs</span><span class="ot">))</span>
 <span class="kw">model</span>:add<span class="ot">(</span> <span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">ninputs</span>, <span class="kw">noutputs</span><span class="ot">)</span> <span class="ot">)</span></code></pre></td></tr></table>
 <p>A slightly more complicated model is the multi-layer neural network (MLP). This model is parametrized by two weight matrices, and two bias vectors:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/mlp_regression.png" /><p class="caption"></p>
-</div>
+<p>\[
+y^n = W_2 \text{sigmoid}(W_1 x^n + b_1) + b_2
+\]</p>
 <p>where the function <em>sigmoid</em> is typically the symmetric hyperbolic tangent function. Again, in Torch:</p>
 <table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
 2
@@ -323,8 +324,8 @@ torch -i 2_model.lua -model convnet</code></pre></td></tr></table>
 <p>Trainable hierarchical vision models, and more generally image processing algorithms are usually expressed as sequences of operations or transformations. They can be well described by a modular approach, in which each module processes an input image bank and produces a new bank. The figure above is a nice graphical illustration of this approach. Each module requires the previous bank to be fully (or at least partially) available before computing its output. This causality prevents simple parallelism to be implemented across modules. However parallelism can easily be introduced within a module, and at several levels, depending on the kind of underlying operations. These forms of parallelism are exploited in Torch7.</p>
 <p>Typical ConvNets rely on a few basic modules:</p>
 <ul>
-<li><p>Filter bank layer: the input is a 3D array with n1 2D feature maps of size n2 x n3. Each component is denoted x_ijk, and each feature map is denoted xi. The output is also a 3D array, y composed of m1 feature maps of size m2 x m3. A trainable filter (kernel) k_ij in the filter bank has size l1 x l2 and connects input feature map x to output feature map y_j. The module computes y_j = b_j + i_{kij} * x_i where * is the 2D discrete convolution operator and b_j is a trainable bias parameter. Each filter detects a particular feature at every location on the input. Hence spatially translating the input of a feature detection layer will translate the output but leave it otherwise unchanged.</p></li>
-<li><p>Non-Linearity Layer: In traditional ConvNets this simply consists in a pointwise tanh() sigmoid function applied to each site (ijk). However, recent implementations have used more sophisticated non-linearities. A useful one for natural image recognition is the rectified sigmoid Rabs: abs(g_i.tanh()) where g_i is a trainable gain parameter. The rectified sigmoid is sometimes followed by a subtractive and divisive local normalization N, which enforces local competition between adjacent features in a feature map, and between features at the same spatial location.</p></li>
+<li><p>Filter bank layer: the input is a 3D array with n1 2D feature maps of size n2 x n3. Each component is denoted \(x_ijk\), and each feature map is denoted xi. The output is also a 3D array, y composed of m1 feature maps of size m2 x m3. A trainable filter (kernel) \(k_ij\) in the filter bank has size l1 x l2 and connects input feature map x to output feature map \(y_j\). The module computes \(y_j = b_j + i_{kij} * x_i\) where \(*\) is the 2D discrete convolution operator and \(b_j\) is a trainable bias parameter. Each filter detects a particular feature at every location on the input. Hence spatially translating the input of a feature detection layer will translate the output but leave it otherwise unchanged.</p></li>
+<li><p>Non-Linearity Layer: In traditional ConvNets this simply consists in a pointwise tanh() sigmoid function applied to each site (ijk). However, recent implementations have used more sophisticated non-linearities. A useful one for natural image recognition is the rectified sigmoid Rabs: \(\abs(g_i.tanh())\) where \(g_i\) is a trainable gain parameter. The rectified sigmoid is sometimes followed by a subtractive and divisive local normalization N, which enforces local competition between adjacent features in a feature map, and between features at the same spatial location.</p></li>
 <li><p>Feature Pooling Layer: This layer treats each feature map separately. In its simplest instance, it computes the average values over a neighborhood in each feature map. Recent work has shown that more selective poolings, based on the LP-norm, tend to work best, with P=2, or P=inf (also known as max pooling). The neighborhoods are stepped by a stride larger than 1 (but smaller than or equal the pooling neighborhood). This results in a reduced-resolution output feature map which is robust to small variations in the location of features in the previous layer. The average operation is sometimes replaced by a max PM. Traditional ConvNets use a pointwise tanh() after the pooling layer, but more recent models do not. Some ConvNets dispense with the separate pooling layer entirely, but use strides larger than one in the filter bank layer to reduce the resolution. In some recent versions of ConvNets, the pooling also pools similar feature at the same location, in addition to the same feature at nearby locations.</p></li>
 </ul>
 <p>Here is an example of ConvNet that we will use in this tutorial:</p>
@@ -401,33 +402,35 @@ torch -i 2_model.lua -model convnet</code></pre></td></tr></table>
 </ul>
 <h2 id="step-3-loss-function">Step 3: Loss Function</h2>
 <p>Now that we have a model, we need to define a loss function to be minimized, across the entire training set:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/loss.png" /><p class="caption"></p>
-</div>
+<p>\[
+L = \sum_n l(y^n,t^n)
+\]</p>
 <p>One of the simplest loss functions we can minimize is the mean-square error between the predictions (outputs of the model), and the groundtruth labels, across the entire dataset:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/mse_loss.png" /><p class="caption"></p>
-</div>
+<p>\[
+l(y^n,t^n) = \frac{1}{2} \sum_i (y_i^n - t_i^n)^2
+\]</p>
 <p>or, in Torch:</p>
 <table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
 </pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">criterion</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>MSECriterion<span class="ot">()</span></code></pre></td></tr></table>
 <p>The MSE loss is typically not a good one for classification, as it forces the model to exactly predict the values imposed by the targets (labels).</p>
 <p>Instead, a more commonly used, probabilistic objective is the negative log-likelihood. To minimize a negative log-likelihood, we first need to turn the predictions of our models into properly normalized log-probabilities. For the linear model, this is achieved by feeding the output units into a <em>softmax</em> function, which turns the linear regression into a logistic regression:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/logistic_regression.png" /><p class="caption"></p>
-</div>
+<p>\[
+P(Y=i|x^n,W,b) = \text{softmax}(Wx^n+be) \\
+\\
+P(Y=i|x^n,W,b) = \frac{ e^{Wx_i^n+b} }{ \sum_j e^{Wx_j^n+b} }
+\]</p>
 <p>As we're interested in classification, the final prediction is then achieved by taking the argmax of this distribution:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/logistic_argmax.png" /><p class="caption"></p>
-</div>
+<p>\[
+y^n = \arg\max_i P(Y=i|x^n,W,b)
+\]</p>
 <p>in which case the ouput y is a scalar.</p>
 <p>More generally, the output of any model can be turned into normalized log-probabilities, by stacking a <em>softmax</em> function on top. So given any of the models defined above, we can simply do:</p>
 <table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
 </pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">model</span>:add<span class="ot">(</span> <span class="kw">nn</span><span class="ot">.</span>LogSoftMax<span class="ot">()</span> <span class="ot">)</span></code></pre></td></tr></table>
 <p>We want to maximize the likelihood of the correct (target) class, for each sample in the dataset. This is equivalent to minimizing the negative log-likelihood (NLL), or minimizing the cross-entropy between the predictions of our model and the targets (training data). Mathematically, the per-sample loss can be defined as:</p>
-<div class="figure">
-<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/1_supervised/img/nll_loss.png" /><p class="caption"></p>
-</div>
+<p>\[
+l(x^n,t^n) = -\log(P(Y=t^n|x^n,W,b))
+\]</p>
 <p>Given that our model already produces log-probabilities (thanks to the <em>softmax</em>), the loss is quite straightforward to estimate. In Torch, we use the <em>ClassNLLCriterion</em>, which expects its input as being a vector of log-probabilities, and the target as being an integer pointing to the correct class:</p>
 <table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
 </pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">criterion</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>ClassNLLCriterion<span class="ot">()</span></code></pre></td></tr></table>

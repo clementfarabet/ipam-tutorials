@@ -47,7 +47,7 @@ Step 1: Data
 
 The code for this section is in `1_data.lua`. Run it like this:
 
-```bash
+```{.bash .numberLines}
 torch -i 1_data.lua
 ```
 
@@ -78,7 +78,7 @@ In this first section, we are going to preprocess the data to facilitate trainin
 
 The script provided automatically retrieves the dataset, all we have to do is load it:
 
-```lua
+```{.lua .numberLines}
 -- We load the dataset from disk, and re-arrange it to be compatible
 -- with Torch's representation. Matlab uses a column-major representation,
 -- Torch is row-major, so we just have to transpose the data.
@@ -108,7 +108,7 @@ in general by doing: `dst = src:type('torch.TypeTensor')`,
 where `Type=='Float','Double','Byte','Int',`... Shortcuts are provided
 for simplicity (`float(),double(),cuda()`,...):
 
-```lua
+```{.lua .numberLines}
 trainData.data = trainData.data:float()
 testData.data = testData.data:float()
 ```
@@ -122,7 +122,7 @@ For natural images, we use several intuitive tricks:
   * the luminance channel (Y) is locally normalized, using a contrastive normalization operator: for each neighborhood, defined by a Gaussian kernel, the mean is suppressed, and the standard deviation is normalized to one.
   * color channels are normalized globally, across the entire dataset; as a result, each color component has 0-mean and 1-norm across the dataset.
 
-```lua
+```{.lua .numberLines}
 -- Convert all images to YUV
 print '==> preprocessing data: colorspace RGB -> YUV'
 for i = 1,trainData:size() do
@@ -179,7 +179,7 @@ end
 
 At this stage, it's good practice to verify that data is properly normalized:
 
-```lua
+```{.lua .numberLines}
 for i,channel in ipairs(channels) do
    trainMean = trainData.data[{ {},i }]:mean()
    trainStd = trainData.data[{ {},i }]:std()
@@ -198,7 +198,7 @@ end
 We can then get an idea of how the preprocessing transformed the data by
 displaying it:
 
-```lua
+```{.lua .numberLines}
 -- Visualization is quite easy, using image.display(). Check out:
 -- help(image.display), for more info about options.
 
@@ -226,7 +226,7 @@ Step 2: Model Definition
 
 The code for this section is in `2_model.lua`. Run it like this:
 
-```bash
+```{.bash .numberLines}
 torch -i 2_model.lua -model linear
 torch -i 2_model.lua -model mlp
 torch -i 2_model.lua -model convnet
@@ -243,7 +243,7 @@ and a bias vector b. Mathematically, it can be written as:
 
 Using the _nn_ package, describing ConvNets, MLPs and other forms of sequential trainable models is really easy. All we have to do is create a top-level wrapper, which, as for the logistic regression, is going to be a sequential module, and then append modules into it. Implementing a simple linear model is therefore trivial:
 
-```lua
+```{.lua .numberLines}
 model = nn.Sequential()
 model:add(nn.Reshape(ninputs))
 model:add( nn.Linear(ninputs, noutputs) )
@@ -257,7 +257,7 @@ parametrized by two weight matrices, and two bias vectors:
 where the function _sigmoid_ is typically the symmetric hyperbolic tangent function. Again,
 in Torch:
 
-```lua
+```{.lua .numberLines}
 model = nn.Sequential()
 model:add(nn.Reshape(ninputs))
 model:add(nn.Linear(ninputs,nhiddens))
@@ -285,7 +285,7 @@ Typical ConvNets rely on a few basic modules:
 
 Here is an example of ConvNet that we will use in this tutorial:
 
-```lua
+```{.lua .numberLines}
 -- parameters
 nstates = {16,256,128}
 fanin = {1,4}
@@ -355,7 +355,7 @@ One of the simplest loss functions we can minimize is the mean-square error betw
 
 or, in Torch:
 
-```lua
+```{.lua .numberLines}
 criterion = nn.MSECriterion()
 ```
 
@@ -374,7 +374,7 @@ in which case the ouput y is a scalar.
 More generally, the output of any model can be turned into normalized log-probabilities, by stacking
 a _softmax_ function on top. So given any of the models defined above, we can simply do:
 
-```lua
+```{.lua .numberLines}
 model:add( nn.LogSoftMax() )
 ```
 
@@ -384,13 +384,13 @@ We want to maximize the likelihood of the correct (target) class, for each sampl
 
 Given that our model already produces log-probabilities (thanks to the _softmax_), the loss is quite straightforward to estimate. In Torch, we use the _ClassNLLCriterion_, which expects its input as being a vector of log-probabilities, and the target as being an integer pointing to the correct class:
 
-```lua
+```{.lua .numberLines}
 criterion = nn.ClassNLLCriterion()
 ```
 
 Finally, another type of classification loss is the multi-class margin loss, which is closer to the well-known SVM loss. This loss function doesn't require normalized outputs, and can be implemented like this:
 
-```lua
+```{.lua .numberLines}
 criterion = nn.MultiMarginCriterion()
 ```
 
@@ -415,7 +415,7 @@ Interestingly, in the case of large convex problems, stochasticity is also very 
 
 Here is our full training function, which demonstrates that you can switch the optimization you're using at runtime (if you want to), and also modify the batch size you're using at run time. You can do all these things because we create the evaluation closure each time we create a new batch. If the batch size is 1, then the method is purely stochastic. If the batch size is set to the complete dataset, then the method is a pure batch method.
 
-```lua
+```{.lua .numberLines}
 -- classes
 classes = {'1','2','3','4','5','6','7','8','9','0'}
 
@@ -556,7 +556,7 @@ end
 
 We could then run the training procedure like this:
 
-```lua
+```{.lua .numberLines}
 while true
    train()
 end
@@ -580,7 +580,7 @@ A common thing to do is to test the model's performance while we train it. Usual
 test is done on a subset of the training data, that is kept for validation. Here
 we simply define the test procedure on the available test set:
 
-```lua
+```{.lua .numberLines}
 function test()
    -- local vars
    local time = sys.clock()
@@ -632,7 +632,7 @@ end
 
 The train/test procedure now looks like this:
 
-```lua
+```{.lua .numberLines}
 while true
    train()
    test()
@@ -734,7 +734,7 @@ to the parameters, which is typically not a good idea. Instead, after each call
 to `optim.sgd`, you can simply apply the regularization on the subset of weights 
 of interest:
 
-```lua
+```{.lua .numberLines}
 -- model:
 model = nn.Sequential()
 model:add( nn.Linear(100,200) )
@@ -806,6 +806,6 @@ at which you discard information. In Torch, all the pooling modules (L2, average
 max) have separate parameters for the pooling size and the strides, for
 example:
 
-```lua
+```{.lua .numberLines}
 nn.SpatialMaxPooling(pool_x, pool_y, stride_x, stride_y)
 ```

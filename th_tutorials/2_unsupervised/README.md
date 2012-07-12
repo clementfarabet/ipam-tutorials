@@ -23,7 +23,7 @@ And a top file, `doall.lua`, runs the complete experiment. In this case though, 
 too many inter-dependencies between files, so they can be loaded individually. If you still want
 to interact with the code, run:
 
-```lua
+```{.lua .numberLines}
 torch -i doall.lua
 ```
 
@@ -60,7 +60,7 @@ To describe the model, we use the _unsup_ package, which provides templates to b
 
 The first step is to describe an encoder, which we can do by using any of the modules available in nn:
 
-```lua
+```{.lua .numberLines}
 encoder = nn.Sequential()
 encoder:add(nn.Linear(inputSize,outputSize))
 encoder:add(nn.Tanh())
@@ -68,20 +68,20 @@ encoder:add(nn.Tanh())
 
 The second step is to describe the decoder, a simple linear module:
 
-```lua
+```{.lua .numberLines}
 decoder = nn.Sequential()
 decoder:add(nn.Linear(outputSize,inputSize))
 ```
 
 Finally, we use the built-in AutoEncoder class from unsup, which automatically provides a mean-square error loss:
 
-```lua
+```{.lua .numberLines}
 module = unsup.AutoEncoder(encoder, decoder, params.beta)
 ```
 
 At this stage, estimating the loss (reconstruction error) can be done like this, for arbitrary inputs:
 
-```lua
+```{.lua .numberLines}
 input = torch.randn(inputSize)
 loss = module:updateOutput(input,input)
 ```
@@ -90,7 +90,7 @@ Note that we need to provide the input, and a target that we wish to reconstruct
 
 As for any nn module, gradients can be estimated this way:
 
-```lua
+```{.lua .numberLines}
 -- get parameters and gradient pointers
 x,dl_dx = module:getParameters()
  
@@ -199,7 +199,7 @@ With the unsup package, this can be implemented very simply.
 
 We define an encoder first:
 
-```lua
+```{.lua .numberLines}
 encoder = nn.Sequential()
 encoder:add(nn.Linear(inputSize,outputSize))
 encoder:add(nn.Tanh())
@@ -208,7 +208,7 @@ encoder:add(nn.Diag(outputSize))
 
 Then the decoder is the L1 solution presented above:
 
-```lua
+```{.lua .numberLines}
 decoder = unsup.LinearFistaL1(inputSize, outputSize, params.lambda)
 ```
 
@@ -216,7 +216,7 @@ Under the hood, this decoder relies on FISTA to find the optimal sparse code. FI
 
 Finally, both modules can be packaged together into an autoencoder. We can't use the basic AutoEncoder class to do this, because the LinearFistaL1 decoder is a bit peculiar. Insted, we use a special-purpose PSD container:
 
-```lua
+```{.lua .numberLines}
 module = unsup.PSD(encoder, decoder)
 ```
 
@@ -226,7 +226,7 @@ For vision/image applications, fully connected linear autoencoders are often ove
 
 A convolutional version of the PSD autoencoder can be derived by simply replacing the encoder and decoder by convolutional counterparts:
 
-```lua
+```{.lua .numberLines}
 -- connection table:
 conntable = nn.tables.full(1, 32)
  
@@ -258,7 +258,7 @@ Step 2: Training
 
 If you've read the tutorial on supervised learning, training a model unsupervised is basically equivalent. We first define a closure that computes the loss, and the gradients of that loss wrt the trainable parameters, and then pass this closure to one of the optimizers in optim. As usual, we use SGD to train autoencoders on large amounts of data:
 
-```lua
+```{.lua .numberLines}
 -- some parameters
 local minibatchsize = 50
  
@@ -334,7 +334,7 @@ proportionally to the inverse of the diagonal terms.
 
 Computing the diagonal terms is very analogous to computing the gradients themselves:
 
-```lua
+```{.lua .numberLines}
 if params.hessian and math.fmod(t , params.hessianinterval) == 1 then
   -- some extra vars:
   local hessiansamples = params.hessiansamples
@@ -381,7 +381,7 @@ for each trainable parameter in the system. These _etas_ can be re-estimated eve
 once in a while, depending on the complexity of the model / data. They can then
 simply be passed to the SGD function, which will use them as individual learning rates:
 
-```lua
+```{.lua .numberLines}
 sgdconf = sgdconf or {learningRate = params.eta,
                       learningRateDecay = params.etadecay,
                       learningRates = etas,

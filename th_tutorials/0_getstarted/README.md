@@ -41,7 +41,7 @@ to log into the EC2 machine. Once you've got the `ipam_identity.pem` file and th
 `ADDRESS` of the server, pick a unique `USERNAME`, for your use within the "student"
 account, and if you have a linux or OSX computer type:
 
-```bash
+```{.bash .numberLines}
 # connect to our EC2 instance "ADDRESS"
 ssh -XC -i ipam_identity student@23.23.148.41
 
@@ -64,7 +64,7 @@ Running Code
 Torch7 is interpreted, so the easiest way to get started is to start an
 interpreter, and start typing commands:
 
-```bash
+```{.bash .numberLines}
 $ torch
 Try the IDE: torch -ide
 Type help() for more info
@@ -72,7 +72,7 @@ Torch 7.0  Copyright (C) 2001-2011 Idiap, NEC Labs, NYU
 Lua 5.1  Copyright (C) 1994-2008 Lua.org, PUC-Rio
 ```
 
-```lua
+```{.lua .numberLines}
 t7> a = 10
 t7> =a
 10
@@ -86,14 +86,14 @@ t7>
 By default, the interpreter preloads the torch and plotting packages. Extra
 packages, such as image, and nn, must be required manually:
 
-```lua
+```{.lua .numberLines}
 t7> require 'nn'
 t7> require 'image'
 ```
 
 The image package allows easy rendering of images:
 
-```lua
+```{.lua .numberLines}
 t7> i = image.lena()
 t7> image.display(i)
 ```
@@ -103,14 +103,14 @@ t7> image.display(i)
 In these tutorials, we'll be interested in visualizing internal states, and
 convolution filters:
 
-```lua
+```{.lua .numberLines}
 t7> n = nn.SpatialConvolution(1,16,12,12)
 t7> image.display{image=n.weight, padding=2, zoom=4}
 ```
 
 ![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/0_getstarted/img/filters.png)
 
-```lua
+```{.lua .numberLines}
 t7> n:forward(image.rgb2y(i))
 t7> image.display{image=n.output, padding=2, zoom=0.25, legend='states'}
 ```
@@ -124,7 +124,7 @@ brackets are used to describe Lua's most general data type: the table.
 
 A more advanced, graphical interpreter can be launched like this:
 
-```bash
+```{.bash .numberLines}
 $ torch -ide
 ```
 
@@ -137,13 +137,13 @@ the .lua extension, and execute it either from your shell prompt, or from
 the Torch interpreter. All the code in this file has been written to a file
 called [getstarted.lua](./getstarted.lua). You can run it like this:
 
-```bash
+```{.bash .numberLines}
 $ torch getstarted.lua
 ```
 
 or from the Torch interpreter:
 
-```lua
+```{.lua .numberLines}
 t7> dofile 'getstarted.lua'
 ```
 
@@ -157,14 +157,14 @@ is installed on your machine, along with Torch's packages. The default location 
 is also mirrored online [here](http://www.torch.ch/manual), and can be triggered from
 your interpreter by doing:
 
-```lua
+```{.lua .numberLines}
 t7> browse()
 ```
 
 Now a quick way to learn functions, and explore packages, is to use TAB-completion, that is,
 start typing something in the Torch interpreter, and then hit TAB twice:
 
-```lua
+```{.lua .numberLines}
 t7> torch. + TAB
 torch.ByteTensor.            torch.include(
 torch.CharStorage.           torch.initialSeed(
@@ -175,7 +175,7 @@ torch.CharTensor.            torch.inverse(
 This will give you a list of all functions provided in the _torch_ package. You can then
 get inline help for a specific function like this:
 
-```lua
+```{.lua .numberLines}
 t7> help(torch.randn)
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -221,14 +221,14 @@ valid for any ML problem. You will find the MNIST dataset already stored into
 the Torch file format [here](http://data.neuflow.org/data/mnist.t7.tgz). You can
 download it like this:
 
-```bash
+```{.bash .numberLines}
 $ wget http://data.neuflow.org/data/mnist.t7.tgz
 $ tar xvf mnist.t7.tgz
 ```
 
 You can then load both the training and test data like this:
 
-```lua
+```{.lua .numberLines}
 t7> train = torch.load('mnist.t7/train_32x32.t7', 'ascii')
 t7> test = torch.load('mnist.t7/test_32x32.t7', 'ascii')
 t7> = train

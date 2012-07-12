@@ -21,6 +21,14 @@ by navigating through the
 __If you're reading this on GitHub, you won't see the Math properly rendered,
 please read the tutorials [here](http://code.cogbits.com/tutorials).__
 
+HTML Links (if you're browsing an HTML version of this help, _i.e._ not GitHub):
+
+  * [Day 1: Setup / Basics / Getting Started](0_getstarted/README.html)
+  * [Day 2: Supervised Learning](1_supervised/README.html)
+  * [Day 3: Unsupervised Learning](2_unsupervised/README.html)
+  * [Day 4: Graphical Models](3_graphicalmodels/README.html)
+  * [Days 5+: Going Further](4_morestuff/README.html)
+
 GitHub Links:
 
   * [Day 1: Setup / Basics / Getting Started](https://github.com/clementfarabet/ipam-tutorials/tree/master/th_tutorials/0_getstarted)
@@ -28,11 +36,3 @@ GitHub Links:
   * [Day 3: Unsupervised Learning](https://github.com/clementfarabet/ipam-tutorials/tree/master/th_tutorials/2_unsupervised)
   * [Day 4: Graphical Models](https://github.com/clementfarabet/ipam-tutorials/tree/master/th_tutorials/3_graphicalmodels)
   * [Days 5+: Going Further](https://github.com/clementfarabet/ipam-tutorials/tree/master/th_tutorials/4_morestuff)
-
-HTML Links (if you're browsing the local repo):
-
-  * [Day 1: Setup / Basics / Getting Started](0_getstarted/README.html)
-  * [Day 2: Supervised Learning](1_supervised/README.html)
-  * [Day 3: Unsupervised Learning](2_unsupervised/README.html)
-  * [Day 4: Graphical Models](3_graphicalmodels/README.html)
-  * [Days 5+: Going Further](4_morestuff/README.html)

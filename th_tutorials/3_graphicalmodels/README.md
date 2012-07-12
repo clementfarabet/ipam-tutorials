@@ -194,6 +194,10 @@ In CRFs, we have two types of variables: (i) the _features_ $X$ are treated as f
 non-random variables (observed), and (ii) the _labels_ $y$ are treated as random variables 
 in a graph, where the parameters of the graph depend on the features.
 
+I invite you to take a look at this great tutorial on
+[CRFs](http://people.cs.umass.edu/~mccallum/papers/crf-tutorial.pdf), for a more
+formal introduction.
+
 In our case, the _labels_ will be the $32\times32$ clean predictions, which can
 take binary states, and the _features_ will be the $32\times32$ pixels, which
 are continuous grayscale values.

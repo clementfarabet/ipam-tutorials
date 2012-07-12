@@ -256,6 +256,41 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <li><p>insert this <code>Dropout</code> module on the input of an autoencoder: that will give you a denoising autoencoder</p></li>
 <li><p>now more interesting: insert this <code>Dropout</code> module into the convolutional network defined in the supervised training tutorial: does it help generalization?</p></li>
 </ul>
+<h3 id="multiscalepyramid-networks">Multiscale/Pyramid Networks</h3>
+<p>Scene parsing, or semantic segmentation, consists in labeling each pixel in an image with the category of the object it belongs to. It is a challenging task that involves the simultaneous detection, segmentation and recognition of all the objects in the image.</p>
+<p>I recently proposed a model that can parse a wide variety of scenes in an extremely small amount of time (about a half a second on an i7-based computer). The model relies on a multiscale extension of convolutional networks, where weights are not only shared in space, but also in the scale space.</p>
+<p>More information and results can be found <a href="http://www.clement.farabet.net/research.html#parsing">here</a> and <a href="http://data.clement.farabet.net/pubs/icml12.pdf">our paper</a>. This was joint work with Camille Couprie, Laurent Najman and Yann LeCun.</p>
+<p>The typical results produced by our system look like this:</p>
+<div class="figure">
+<img src="img/parses.png" /><p class="caption"></p>
+</div>
+<p>The backbone of the system is the multiscale convolutional network. In this tutorial, I am just going to give you a pointer to some code that essentially takes any trainable model as an argument, and trains it on a pyramid version of the original input image. The code for this module can be found <a href="https://github.com/clementfarabet/lua---nnx/blob/master/SpatialPyramid.lua">here</a>. It is fairly generic, given an input image, it:</p>
+<ul>
+<li>creates a multiscale pyramid</li>
+<li>applies the given trainable model on each scale</li>
+<li>upsamples the predictions and concatenates them to produce a dense feature map</li>
+</ul>
+<p>This is depicted in this figure:</p>
+<div class="figure">
+<img src="img/foveanet.png" /><p class="caption"></p>
+</div>
+<p>One thing that is not done in this module is weight sharing, which is left to the user. This is quite easy to do in Torch though, given an existing module, we can create replicas of it, which all share the same trainable parameters, but each have their own output states. This is done like this:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">module</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
+<span class="co">-- fill this module with anything...</span>
+
+<span class="co">-- create a replica of the first module, with no sharing:</span>
+<span class="kw">module2</span> <span class="ot">=</span> <span class="kw">module</span>:clone<span class="ot">()</span>
+
+<span class="co">-- create a replica, which shares all its trainable parameters:</span>
+<span class="kw">module3</span> <span class="ot">=</span> <span class="kw">module</span>:clone<span class="ot">(</span><span class="st">&#39;weight&#39;</span>,<span class="st">&#39;bias&#39;</span>,<span class="st">&#39;gradWeight&#39;</span>,<span class="st">&#39;gradBias&#39;</span><span class="ot">)</span></code></pre></td></tr></table>
 <h2 id="using-cuda-and-the-gpu-to-accelerate-trainingtesting">Using CUDA and the GPU to Accelerate Training/Testing</h2>
 <p>In Torch, it is (almost) transparent to move parts of your computation graph to the GPU.</p>
 <h3 id="basics-tensors">Basics: Tensors</h3>

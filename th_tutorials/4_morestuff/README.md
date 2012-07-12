@@ -243,6 +243,58 @@ module into the previous tutorials we have done. I would try the following:
   network defined in the supervised training tutorial: does it help
   generalization?
 
+### Multiscale/Pyramid Networks
+
+Scene parsing, or semantic segmentation, consists in labeling each pixel in an 
+image with the category of the object it belongs to. It is a challenging task that
+involves the simultaneous detection, segmentation and recognition of all the objects 
+in the image.
+
+I recently proposed a model that can parse a wide variety of scenes in an extremely small 
+amount of time (about a half a second on an i7-based computer). The model relies on
+a multiscale extension of convolutional networks, where weights are not only shared in
+space, but also in the scale space.
+
+More information and results can be found
+[here](http://www.clement.farabet.net/research.html#parsing) and
+[our paper](http://data.clement.farabet.net/pubs/icml12.pdf). This was joint
+work with Camille Couprie, Laurent Najman and Yann LeCun.
+
+The typical results produced by our system look like this:
+
+![](img/parses.png)
+
+The backbone of the system is the multiscale convolutional network. In this tutorial,
+I am just going to give you a pointer to some code that essentially takes any
+trainable model as an argument, and trains it on a pyramid version of the original 
+input image. The code for this module can be found
+[here](https://github.com/clementfarabet/lua---nnx/blob/master/SpatialPyramid.lua). It
+is fairly generic, given an input image, it:
+
+  * creates a multiscale pyramid
+  * applies the given trainable model on each scale
+  * upsamples the predictions and concatenates them to produce a dense feature map
+
+This is depicted in this figure:
+
+![](img/foveanet.png)
+
+One thing that is not done in this module is weight sharing, which is left to the
+user. This is quite easy to do in Torch though, given an existing module, we can
+create replicas of it, which all share the same trainable parameters, but each
+have their own output states. This is done like this:
+
+```{.lua .numberLines}
+module = nn.Sequential()
+-- fill this module with anything...
+
+-- create a replica of the first module, with no sharing:
+module2 = module:clone()
+
+-- create a replica, which shares all its trainable parameters:
+module3 = module:clone('weight','bias','gradWeight','gradBias')
+```
+
 Using CUDA and the GPU to Accelerate Training/Testing
 -----------------------------------------------------
 

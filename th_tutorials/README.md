@@ -18,6 +18,9 @@ This text can be browsed either from the html files, or directly on GitHub,
 by navigating through the
 [directory structure](https://github.com/clementfarabet/ipam-tutorials/tree/master/th_tutorials).
 
+__If you're reading this on GitHub, you won't see the Math properly rendered,
+please read the tutorials [here](http://code.cogbits.com/tutorials).__
+
 GitHub Links:
 
   * [Day 1: Setup / Basics / Getting Started](https://github.com/clementfarabet/ipam-tutorials/tree/master/th_tutorials/0_getstarted)

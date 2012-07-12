@@ -150,8 +150,9 @@ function Dropout:updateOutput(input)
 end
 
 function Dropout:updateGradInput(input, gradOutput)
-   self.gradInput = input -- note that it's important to register gradInput
-   return self.gradInput  -- as it might be used by some external modules
+   self.gradInput:resizeAs(gradOutput):copy(gradOutput)
+   self.gradInput:cmul(self.noise) -- simply mask the gradients with the noise vector
+   return self.gradInput
 end
 ```
 

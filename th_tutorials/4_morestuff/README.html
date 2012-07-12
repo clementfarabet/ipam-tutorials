@@ -5,12 +5,304 @@
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <title></title>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
   <link rel="stylesheet" href="../style.css" type="text/css" />
 </head>
 <body>
 <h1 id="going-further">Going Further</h1>
 <p>In the previous 3 tutorials, you saw 3 complete applications of machine learning: supervised learning of MLPs and ConvNets, unsupervised pre-training of auto-encoders, and supervised training of conditionnal random fields.</p>
-<h2 id="using-cuda-and-the-gpu-to-accelerate-training">Using CUDA and the GPU to Accelerate Training</h2>
+<p>In this tutorial, we will see how to extend what we've seen, mainly by creating our own new modules, and testing them, and then see how we can use the GPU to speed up learning, and testing.</p>
 <h2 id="defining-your-own-neural-net-module">Defining your own Neural Net Module</h2>
+<p>So far we've used existing modules. In this section, we'll define two new modules, and see how simple it is to do so.</p>
+<p>Modules are bricks to build neural networks. A <code>Module</code> is a neural network by itself, but it can be combined with other networks using container classes to create complex neural networks. <code>Module</code> is an abstract class which defines fundamental methods necessary for a training a neural network. All modules are serializable.</p>
+<p>Modules contain two states variables: <code>output</code> and <code>gradInput</code>. Here we review the set of basic functions that a <code>Module</code> has to implement:</p>
+<h4 id="output-forwardinput"><code>[output] forward(input)</code></h4>
+<p>Takes an input object, and computes the corresponding output of the module. In general input and output are <code>Tensors</code>. However, some special sub-classes like table layers might expect something else. Please, refer to each module specification for further information.</p>
+<p>After a <code>forward()</code>, the output state variable should have been updated to the new value.</p>
+<p>It is not advised to override this function. Instead, one should implement updateOutput(input) function. The forward module in the abstract parent class <code>Module</code> will call updateOutput(input).</p>
+<h4 id="gradinput-backwardinput-gradoutput"><code>[gradInput] backward(input, gradOutput)</code></h4>
+<p>Performs a backpropagation step through the module, with respect to the given input. In general this method makes the assumption forward(input) has been called before, with the same input. This is necessary for optimization reasons. If you do not respect this rule, <code>backward()</code> will compute incorrect gradients.</p>
+<p>In general input and gradOutput and gradInput are <code>Tensors</code>. However, some special sub-classes like table layers might expect something else. Please, refer to each module specification for further information.</p>
+<p>A backpropagation step consist in computing two kind of gradients at input given gradOutput (gradients with respect to the output of the module). This function simply performs this task using two function calls:</p>
+<ul>
+<li>A function call to updateGradInput(input, gradOutput).</li>
+<li>A function call to accGradParameters(input,gradOutput).</li>
+</ul>
+<p>It is not advised to override this function call in custom classes. It is better to override <code>updateGradInput(input, gradOutput)</code> and <code>accGradParameters(input, gradOutput)</code> functions.</p>
+<h4 id="output-updateoutputinput-gradoutput"><code>[output] updateOutput(input, gradOutput)</code></h4>
+<p>When defining a new module, this method should be overloaded.</p>
+<p>Computes the output using the current parameter set of the class and input. This function returns the result which is stored in the output field.</p>
+<h4 id="gradinput-updategradinputinput-gradoutput"><code>[gradInput] updateGradInput(input, gradOutput)</code></h4>
+<p>When defining a new module, this method should be overloaded.</p>
+<p>Computing the gradient of the module with respect to its own input. This is returned in gradInput. Also, the gradInput state variable is updated accordingly.</p>
+<h4 id="gradinput-accgradparametersinput-gradoutput"><code>[gradInput] accGradParameters(input, gradOutput)</code></h4>
+<p>When defining a new module, this method may need to be overloaded, if the module has trainable parameters.</p>
+<p>Computing the gradient of the module with respect to its own parameters. Many modules do not perform this step as they do not have any parameters. The state variable name for the parameters is module dependent. The module is expected to accumulate the gradients with respect to the parameters in some variable.</p>
+<p>Zeroing this accumulation is achieved with zeroGradParameters() and updating the parameters according to this accumulation is done with updateParameters().</p>
+<h4 id="reset"><code>reset()</code></h4>
+<p>This method defines how the trainable parameters are reset, <em>i.e.</em> initialized before training.</p>
+<hr />
+<p>Modules provide a few other methods that you might want to define, if you are not planing to use the <code>optim</code> package. These methods help <code>zero()</code> the parameters, and update them using very basic techniques.</p>
+<p>In terms of code structure, <code>Torch</code> provides a class model, which we use for inheritance, and in general for the definition of all the modules in <code>nn</code>. Here is an empty holder for a typical new class:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">local</span> <span class="kw">NewClass</span>, <span class="kw">Parent</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>class<span class="ot">(</span><span class="st">&#39;nn.NewClass&#39;</span>, <span class="st">&#39;nn.Module&#39;</span><span class="ot">)</span>
+
+<span class="kw">function</span> <span class="kw">NewClass</span>:__init<span class="ot">()</span>
+   <span class="kw">parent</span><span class="ot">.</span>__init<span class="ot">(</span><span class="kw">self</span><span class="ot">)</span>
+<span class="kw">end</span>
+
+<span class="kw">function</span> <span class="kw">NewClass</span>:updateOutput<span class="ot">(</span><span class="kw">input</span><span class="ot">)</span>
+<span class="kw">end</span>
+
+<span class="kw">function</span> <span class="kw">NewClass</span>:updateGradInput<span class="ot">(</span><span class="kw">input</span>, <span class="kw">gradOutput</span><span class="ot">)</span>
+<span class="kw">end</span>
+
+<span class="kw">function</span> <span class="kw">NewClass</span>:accGradParameters<span class="ot">(</span><span class="kw">input</span>, <span class="kw">gradOutput</span><span class="ot">)</span>
+<span class="kw">end</span>
+
+<span class="kw">function</span> <span class="kw">NewClass</span>:reset<span class="ot">()</span>
+<span class="kw">end</span></code></pre></td></tr></table>
+<p>When defining a new class, all we need to do is fill in these empty functions. Note that when defining the constructor <code>__init()</code>, we always call the parent's constructor first.</p>
+<p>Let's see some practical examples now.</p>
+<h3 id="dropout-activation-units">Dropout Activation Units</h3>
+<p>This week we heard about dropout activation units. The idea there is to perturbate the activations of hidden units, by randomly zeroing some of these units. So of course, one subtle detail about this type of layer is that it will obviously be wrong in terms of its gradients. Such a class could be defined like this:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">local</span> <span class="kw">Dropout</span>, <span class="kw">Parent</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>class<span class="ot">(</span><span class="st">&#39;nn.Dropout&#39;</span>, <span class="st">&#39;nn.Module&#39;</span><span class="ot">)</span>
+
+<span class="kw">function</span> <span class="kw">Dropout</span>:__init<span class="ot">(</span><span class="kw">percentage</span><span class="ot">)</span>
+   <span class="kw">Parent</span><span class="ot">.</span>__init<span class="ot">(</span><span class="kw">self</span><span class="ot">)</span>
+   <span class="kw">self</span><span class="ot">.</span><span class="kw">p</span> <span class="ot">=</span> <span class="kw">percentage</span> <span class="kw">or</span> <span class="dv">0.5</span>
+   <span class="kw">if</span> <span class="kw">self</span><span class="ot">.</span><span class="kw">p</span> <span class="ot">&gt;</span> <span class="dv">1</span> <span class="kw">or</span> <span class="kw">self</span><span class="ot">.</span><span class="kw">p</span> <span class="ot">&lt;</span> <span class="dv">0</span> <span class="kw">then</span>
+      <span class="fu">error</span><span class="ot">(</span><span class="st">&#39;&lt;Dropout&gt; illegal percentage, must be 0 &lt;= p &lt;= 1&#39;</span><span class="ot">)</span>
+   <span class="kw">end</span>
+<span class="kw">end</span>
+
+<span class="kw">function</span> <span class="kw">Dropout</span>:updateOutput<span class="ot">(</span><span class="kw">input</span><span class="ot">)</span>
+   <span class="kw">self</span><span class="ot">.</span><span class="kw">noise</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>rand<span class="ot">(</span><span class="kw">input</span>:size<span class="ot">())</span> <span class="co">-- uniform noise between 0 and 1</span>
+   <span class="kw">self</span><span class="ot">.</span><span class="kw">noise</span>:add<span class="ot">(</span><span class="dv">1</span> <span class="ot">-</span> <span class="kw">self</span><span class="ot">.</span><span class="kw">p</span><span class="ot">)</span>:<span class="fu">floor</span><span class="ot">()</span>  <span class="co">-- a percentage of noise</span>
+   <span class="kw">self</span><span class="ot">.</span><span class="kw">output</span>:resizeAs<span class="ot">(</span><span class="kw">input</span><span class="ot">)</span>:copy<span class="ot">(</span><span class="kw">input</span><span class="ot">)</span>
+   <span class="kw">self</span><span class="ot">.</span><span class="kw">output</span>:cmul<span class="ot">(</span><span class="kw">self</span><span class="ot">.</span><span class="kw">noise</span><span class="ot">)</span>
+   <span class="kw">return</span> <span class="kw">self</span><span class="ot">.</span><span class="kw">output</span>
+<span class="kw">end</span>
+
+<span class="kw">function</span> <span class="kw">Dropout</span>:updateGradInput<span class="ot">(</span><span class="kw">input</span>, <span class="kw">gradOutput</span><span class="ot">)</span>
+   <span class="kw">self</span><span class="ot">.</span><span class="kw">gradInput</span> <span class="ot">=</span> <span class="kw">input</span> <span class="co">-- note that it&#39;s important to register gradInput</span>
+   <span class="kw">return</span> <span class="kw">self</span><span class="ot">.</span><span class="kw">gradInput</span>  <span class="co">-- as it might be used by some external modules</span>
+<span class="kw">end</span></code></pre></td></tr></table>
+<p>The file is provided in this directory, in <code>Dropout.lua</code>. The script <code>1_dropout.lua</code> demonstrates how to create an instance of this module, and test it on some data (lena):</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- in this file, we test the dropout module we&#39;ve defined:</span>
+<span class="fu">require</span> <span class="st">&#39;nn&#39;</span>
+<span class="fu">require</span> <span class="st">&#39;Dropout&#39;</span>
+<span class="fu">require</span> <span class="st">&#39;image&#39;</span>
+
+<span class="co">-- define a dropout object:</span>
+<span class="kw">n</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Dropout<span class="ot">(</span><span class="dv">0.5</span><span class="ot">)</span>
+
+<span class="co">-- load an image:</span>
+<span class="kw">i</span> <span class="ot">=</span> <span class="kw">image</span><span class="ot">.</span>lena<span class="ot">()</span>
+
+<span class="co">-- process the image:</span>
+<span class="kw">result</span> <span class="ot">=</span> <span class="kw">n</span>:forward<span class="ot">(</span><span class="kw">i</span><span class="ot">)</span>
+
+<span class="co">-- display results:</span>
+<span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">i</span>, <span class="kw">legend</span><span class="ot">=</span><span class="st">&#39;original image&#39;</span><span class="ot">}</span>
+<span class="kw">image</span><span class="ot">.</span>display<span class="ot">{</span><span class="kw">image</span><span class="ot">=</span><span class="kw">result</span>, <span class="kw">legend</span><span class="ot">=</span><span class="st">&#39;dropout-processed image&#39;</span><span class="ot">}</span>
+
+<span class="co">-- some stats:</span>
+<span class="kw">mse</span> <span class="ot">=</span> <span class="kw">i</span>:dist<span class="ot">(</span><span class="kw">result</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="st">&#39;mse between original imgae and dropout-processed image: &#39;</span> <span class="ot">..</span> <span class="kw">mse</span><span class="ot">)</span></code></pre></td></tr></table>
+<h3 id="exercise">Exercise</h3>
+<p>Well, at this stage, a natural exercise would be to try to integrate this module into the previous tutorials we've done. I would try the following:</p>
+<ul>
+<li><p>insert this <code>Dropout</code> module on the input of an autoencoder: that will give you a denoising autoencoder</p></li>
+<li><p>now more interesting: insert this <code>Dropout</code> module into the convolutional network defined in the supervised training tutorial: does it help generalization?</p></li>
+</ul>
+<h2 id="using-cuda-and-the-gpu-to-accelerate-trainingtesting">Using CUDA and the GPU to Accelerate Training/Testing</h2>
+<p>In Torch, it's (almost) transparent to move parts of your computation graph to the GPU.</p>
+<h3 id="basics-tensors">Basics: Tensors</h3>
+<p>The most aggressive way of doing it is to set the default Tensor type to <code>Cuda</code>. Once this is done, any subsequent call to <code>torch.Tensor</code> will allocate a <code>torch.CudaTensor</code>. From the Lua interpreter's standpoint, a <code>torch.CudaTensor</code> is really the same as a regular <code>torch.FloatTensor</code>. The only difference is that some operators are not yet implemented, but this is just a matter of time.</p>
+<p>First initialize the environment like this:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="fu">require</span> <span class="st">&#39;cutorch&#39;</span>
+<span class="kw">torch</span><span class="ot">.</span>setdefaulttensortype<span class="ot">(</span><span class="st">&#39;torch.CudaTensor&#39;</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span>  <span class="kw">cutorch</span><span class="ot">.</span>getDeviceProperties<span class="ot">(</span><span class="kw">cutorch</span><span class="ot">.</span>getDevice<span class="ot">())</span> <span class="ot">)</span></code></pre></td></tr></table>
+<p>This should produce something like:</p>
+<pre class="text"><code>{[deviceOverlap]            = 1
+ [textureAlignment]         = 512
+ [minor]                    = 0
+ [integrated]               = 0
+ [major]                    = 2
+ [sharedMemPerBlock]        = 49152
+ [regsPerBlock]             = 32768
+ [computeMode]              = 0
+ [multiProcessorCount]      = 16
+ [totalConstMem]            = 65536
+ [totalGlobalMem]           = 3220897792
+ [memPitch]                 = 2147483647
+ [maxThreadsPerBlock]       = 1024
+ [name]                     = string : &quot;GeForce GTX 580&quot;
+ [clockRate]                = 1566000
+ [warpSize]                 = 32
+ [kernelExecTimeoutEnabled] = 0
+ [canMapHostMemory]         = 1}</code></pre>
+<p>Now you can easily sum two tensors on the GPU by doing this:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">t1</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>Tensor<span class="ot">(</span><span class="dv">100</span><span class="ot">)</span>:fill<span class="ot">(</span><span class="dv">0.5</span><span class="ot">)</span>
+<span class="kw">t2</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>Tensor<span class="ot">(</span><span class="dv">100</span><span class="ot">)</span>:fill<span class="ot">(</span><span class="dv">1</span><span class="ot">)</span>
+<span class="kw">t1</span>:add<span class="ot">(</span><span class="kw">t2</span><span class="ot">)</span></code></pre></td></tr></table>
+<p>This summing happened on the GPU.</p>
+<p>Now you can very easily move your tensors back and forth the GPU like this:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">t1_cpu</span> <span class="ot">=</span> <span class="kw">t1</span>:float<span class="ot">()</span>
+<span class="kw">t1</span>:zero<span class="ot">()</span>
+<span class="kw">t1</span><span class="ot">[{}]</span> <span class="ot">=</span> <span class="kw">t1_cpu</span>  <span class="co">-- copies the data back to the GPU, with no new alloc</span>
+<span class="kw">t1_new</span> <span class="ot">=</span> <span class="kw">t1_cpu</span>:cuda<span class="ot">()</span>  <span class="co">-- allocates a new tensor</span></code></pre></td></tr></table>
+<p>Knowing this, a more subtle way of working with the GPU is to keep <code>Tensors</code> as <code>DoubleTensors</code> or <code>FloatTensors</code>, <em>i.e.</em> keep them on the CPU by default, and just move specific <code>Tensors</code> to the GPU when needed. We will see that now when working with <code>nn</code>.</p>
+<h3 id="using-the-gpu-with-nn">Using the GPU with <code>nn</code></h3>
+<p>The <code>nn</code> module provides modules which each contain their state, and some contain trainable parameters. When you create a module, the default type of these <code>Tensors</code> is the default type of <code>Torch</code>. If you want to create pure <code>Cuda</code> modules, then simply set the default type to <code>Cuda</code>, and just create your modules. These modules will therefore expect <code>CudaTensors</code> as inputs. It's often a bit too simplistic to set things up this way, as your dataset will typically be made of CPU-based tensors, and some of your <code>nn</code> modules might also be more efficient on the CPU, such that you'll prefer splitting the model in CPU and GPU pieces.</p>
+<p>To use <code>Cuda</code>-based <code>nn</code> modules, you will need to import <code>cunn</code>:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="fu">require</span> <span class="st">&#39;cunn&#39;</span></code></pre></td></tr></table>
+<p>Assuming that you don't set the default type to <code>Cuda</code>, you can easily cast your modules to any type available in Torch:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- we define an MLP</span>
+<span class="kw">mlp</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
+<span class="kw">mlp</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">ninput</span>, <span class="dv">1000</span><span class="ot">))</span>
+<span class="kw">mlp</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Tanh<span class="ot">())</span>
+<span class="kw">mlp</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="dv">1000</span>, <span class="dv">1000</span><span class="ot">))</span>
+<span class="kw">mlp</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Tanh<span class="ot">())</span>
+<span class="kw">mlp</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="dv">1000</span>, <span class="dv">1000</span><span class="ot">))</span>
+<span class="kw">mlp</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Tanh<span class="ot">())</span>
+<span class="kw">mlp</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="dv">1000</span>, <span class="kw">noutput</span><span class="ot">))</span>
+
+<span class="co">-- and move it to the GPU:</span>
+<span class="kw">mlp</span>:cuda<span class="ot">()</span></code></pre></td></tr></table>
+<p>At this stage the network expects <code>CudaTensor</code> inputs. Given a <code>FloatTensor</code> input, you will simply need to retype it before feeding it to the model:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- input</span>
+<span class="kw">input</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>randn<span class="ot">(</span><span class="kw">ninput</span><span class="ot">)</span>
+
+<span class="co">-- retype and feed to network:</span>
+<span class="kw">result</span> <span class="ot">=</span> <span class="kw">mlp</span>:forward<span class="ot">(</span> <span class="kw">input</span>:cuda<span class="ot">()</span> <span class="ot">)</span>
+
+<span class="co">-- the result is a CudaTensor, if your loss is CPU-based, then you will</span>
+<span class="co">-- need to bring it back:</span>
+<span class="kw">result_cpu</span> <span class="ot">=</span> <span class="kw">result</span>:float<span class="ot">()</span></code></pre></td></tr></table>
+<p>Another solution, to completely abstract this issue of type, is to insert <code>Copy</code> layers, which will transparently copy the forward activations, and backward gradients from one type to another:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- we put the mlp in a new container:</span>
+<span class="kw">mlp_auto</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
+<span class="kw">mlp_auto</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Copy<span class="ot">(</span><span class="st">&#39;torch.FloatTensor&#39;</span>, <span class="st">&#39;torch.CudaTensor&#39;</span><span class="ot">))</span>
+<span class="kw">mlp_auto</span>:add<span class="ot">(</span><span class="kw">mlp</span><span class="ot">)</span>
+<span class="kw">mlp_auto</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Copy<span class="ot">(</span><span class="st">&#39;torch.CudaTensor&#39;</span>, <span class="st">&#39;torch.FloatTensor&#39;</span><span class="ot">))</span></code></pre></td></tr></table>
+<p>This new <code>mlp_auto</code> expects <code>FloatTensor</code> inputs and outputs, so you can plug this guy in any of your existing trainer.</p>
+<h4 id="disclaimernote">Disclaimer/Note</h4>
+<p>All the basic modules have implemented on CUDA, and all provide excellent performance. Note though that a lot of modules are still missing, and we welcome any external help to implement all of them!</p>
 </body>
 </html>

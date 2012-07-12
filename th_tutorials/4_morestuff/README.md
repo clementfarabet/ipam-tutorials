@@ -126,9 +126,9 @@ Let's see some practical examples now.
 ### Dropout Activation Units
 
 This week we heard about dropout activation units. The idea there is to perturbate
-the activations of hidden units, by randomly zeroing some of these units. So of course,
-one subtle detail about this type of layer is that it will obviously be wrong
-in terms of its gradients. Such a class could be defined like this:
+the activations of hidden units, by randomly zeroing some of these units. 
+
+Such a class could be defined like this:
 
 ```{.lua .numberLines}
 local Dropout, Parent = torch.class('nn.Dropout', 'nn.Module')
@@ -184,10 +184,57 @@ mse = i:dist(result)
 print('mse between original imgae and dropout-processed image: ' .. mse)
 ```
 
+When writing modules with gradient estimation, it's always very important
+to test your implementation. This can be easily done using the `Jacobian`
+class provided in `nn`, which compares the implementation of the gradient
+methods (`updateGradInput()` and `accGradParameters()`) with the Jacobian
+matrix obtained by finite differences (perturbating the input of the module,
+and estimating the deltas on the output). This can be done like this:
+
+```{.lua .numberLines}
+-- parameters
+local precision = 1e-5
+local jac = nn.Jacobian
+
+-- define inputs and module
+local ini = math.random(10,20)
+local inj = math.random(10,20)
+local ink = math.random(10,20)
+local percentage = 0.5
+local input = torch.Tensor(ini,inj,ink):zero()
+local module = nn.Dropout(percentage)
+
+-- test backprop, with Jacobian
+local err = jac.testJacobian(module,input)
+print('==> error: ' .. err)
+if err<precision then
+   print('==> module OK')
+else
+   print('==> error too large, incorrect implementation')
+end
+```
+
+One slight issue with the `Jacobian` class is the fact that it assumes
+that the outputs of a module are deterministic wrt to the inputs. This is
+not the case for that particular module, so for the purpose of these tests
+we need to freeze the noise generation, _i.e._ do it only once:
+
+```{.lua .numberLines}
+-- we overload the updateOutput() function to generate noise only
+-- once for the whole test.
+function nn.Dropout.updateOutput(self, input)
+   self.noise = self.noise or torch.rand(input:size()) -- uniform noise between 0 and 1
+   self.noise:add(1 - self.p):floor()  -- a percentage of noise
+   self.output:resizeAs(input):copy(input)
+   self.output:cmul(self.noise)
+   return self.output
+end
+```
+
 ### Exercise
 
 Well, at this stage, a natural exercise would be to try to integrate this
-module into the previous tutorials we've done. I would try the following:
+module into the previous tutorials we have done. I would try the following:
 
   * insert this `Dropout` module on the input of an autoencoder: that will
   give you a denoising autoencoder
@@ -199,7 +246,7 @@ module into the previous tutorials we've done. I would try the following:
 Using CUDA and the GPU to Accelerate Training/Testing
 -----------------------------------------------------
 
-In Torch, it's (almost) transparent to move parts of your computation graph
+In Torch, it is (almost) transparent to move parts of your computation graph
 to the GPU. 
 
 ### Basics: Tensors

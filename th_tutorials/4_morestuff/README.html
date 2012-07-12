@@ -99,7 +99,8 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <p>When defining a new class, all we need to do is fill in these empty functions. Note that when defining the constructor <code>__init()</code>, we always call the parent's constructor first.</p>
 <p>Let's see some practical examples now.</p>
 <h3 id="dropout-activation-units">Dropout Activation Units</h3>
-<p>This week we heard about dropout activation units. The idea there is to perturbate the activations of hidden units, by randomly zeroing some of these units. So of course, one subtle detail about this type of layer is that it will obviously be wrong in terms of its gradients. Such a class could be defined like this:</p>
+<p>This week we heard about dropout activation units. The idea there is to perturbate the activations of hidden units, by randomly zeroing some of these units.</p>
+<p>Such a class could be defined like this:</p>
 <table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
 2
 3
@@ -122,6 +123,7 @@ code > span.er { color: #ff0000; font-weight: bold; }
 20
 21
 22
+23
 </pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">local</span> <span class="kw">Dropout</span>, <span class="kw">Parent</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>class<span class="ot">(</span><span class="st">&#39;nn.Dropout&#39;</span>, <span class="st">&#39;nn.Module&#39;</span><span class="ot">)</span>
 
 <span class="kw">function</span> <span class="kw">Dropout</span>:__init<span class="ot">(</span><span class="kw">percentage</span><span class="ot">)</span>
@@ -141,8 +143,9 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <span class="kw">end</span>
 
 <span class="kw">function</span> <span class="kw">Dropout</span>:updateGradInput<span class="ot">(</span><span class="kw">input</span>, <span class="kw">gradOutput</span><span class="ot">)</span>
-   <span class="kw">self</span><span class="ot">.</span><span class="kw">gradInput</span> <span class="ot">=</span> <span class="kw">input</span> <span class="co">-- note that it&#39;s important to register gradInput</span>
-   <span class="kw">return</span> <span class="kw">self</span><span class="ot">.</span><span class="kw">gradInput</span>  <span class="co">-- as it might be used by some external modules</span>
+   <span class="kw">self</span><span class="ot">.</span><span class="kw">gradInput</span>:resizeAs<span class="ot">(</span><span class="kw">gradOutput</span><span class="ot">)</span>:copy<span class="ot">(</span><span class="kw">gradOutput</span><span class="ot">)</span>
+   <span class="kw">self</span><span class="ot">.</span><span class="kw">gradInput</span>:cmul<span class="ot">(</span><span class="kw">self</span><span class="ot">.</span><span class="kw">noise</span><span class="ot">)</span> <span class="co">-- simply mask the gradients with the noise vector</span>
+   <span class="kw">return</span> <span class="kw">self</span><span class="ot">.</span><span class="kw">gradInput</span>
 <span class="kw">end</span></code></pre></td></tr></table>
 <p>The file is provided in this directory, in <code>Dropout.lua</code>. The script <code>1_dropout.lua</code> demonstrates how to create an instance of this module, and test it on some data (lena):</p>
 <table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
@@ -187,14 +190,74 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <span class="co">-- some stats:</span>
 <span class="kw">mse</span> <span class="ot">=</span> <span class="kw">i</span>:dist<span class="ot">(</span><span class="kw">result</span><span class="ot">)</span>
 <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;mse between original imgae and dropout-processed image: &#39;</span> <span class="ot">..</span> <span class="kw">mse</span><span class="ot">)</span></code></pre></td></tr></table>
+<p>When writing modules with gradient estimation, it's always very important to test your implementation. This can be easily done using the <code>Jacobian</code> class provided in <code>nn</code>, which compares the implementation of the gradient methods (<code>updateGradInput()</code> and <code>accGradParameters()</code>) with the Jacobian matrix obtained by finite differences (perturbating the input of the module, and estimating the deltas on the output). This can be done like this:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- parameters</span>
+<span class="kw">local</span> <span class="kw">precision</span> <span class="ot">=</span> <span class="dv">1e-5</span>
+<span class="kw">local</span> <span class="kw">jac</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span><span class="kw">Jacobian</span>
+
+<span class="co">-- define inputs and module</span>
+<span class="kw">local</span> <span class="kw">ini</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="dv">10</span>,<span class="dv">20</span><span class="ot">)</span>
+<span class="kw">local</span> <span class="kw">inj</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="dv">10</span>,<span class="dv">20</span><span class="ot">)</span>
+<span class="kw">local</span> <span class="kw">ink</span> <span class="ot">=</span> <span class="fu">math.random</span><span class="ot">(</span><span class="dv">10</span>,<span class="dv">20</span><span class="ot">)</span>
+<span class="kw">local</span> <span class="kw">percentage</span> <span class="ot">=</span> <span class="dv">0.5</span>
+<span class="kw">local</span> <span class="kw">input</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>Tensor<span class="ot">(</span><span class="kw">ini</span>,<span class="kw">inj</span>,<span class="kw">ink</span><span class="ot">)</span>:zero<span class="ot">()</span>
+<span class="kw">local</span> <span class="kw">module</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Dropout<span class="ot">(</span><span class="kw">percentage</span><span class="ot">)</span>
+
+<span class="co">-- test backprop, with Jacobian</span>
+<span class="kw">local</span> <span class="kw">err</span> <span class="ot">=</span> <span class="kw">jac</span><span class="ot">.</span>testJacobian<span class="ot">(</span><span class="kw">module</span>,<span class="kw">input</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="st">&#39;==&gt; error: &#39;</span> <span class="ot">..</span> <span class="kw">err</span><span class="ot">)</span>
+<span class="kw">if</span> <span class="kw">err</span><span class="ot">&lt;</span><span class="kw">precision</span> <span class="kw">then</span>
+   <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;==&gt; module OK&#39;</span><span class="ot">)</span>
+<span class="kw">else</span>
+   <span class="fu">print</span><span class="ot">(</span><span class="st">&#39;==&gt; error too large, incorrect implementation&#39;</span><span class="ot">)</span>
+<span class="kw">end</span></code></pre></td></tr></table>
+<p>One slight issue with the <code>Jacobian</code> class is the fact that it assumes that the outputs of a module are deterministic wrt to the inputs. This is not the case for that particular module, so for the purpose of these tests we need to freeze the noise generation, <em>i.e.</em> do it only once:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- we overload the updateOutput() function to generate noise only</span>
+<span class="co">-- once for the whole test.</span>
+<span class="kw">function</span> <span class="kw">nn</span><span class="ot">.</span><span class="kw">Dropout</span><span class="ot">.</span>updateOutput<span class="ot">(</span><span class="kw">self</span>, <span class="kw">input</span><span class="ot">)</span>
+   <span class="kw">self</span><span class="ot">.</span><span class="kw">noise</span> <span class="ot">=</span> <span class="kw">self</span><span class="ot">.</span><span class="kw">noise</span> <span class="kw">or</span> <span class="kw">torch</span><span class="ot">.</span>rand<span class="ot">(</span><span class="kw">input</span>:size<span class="ot">())</span> <span class="co">-- uniform noise between 0 and 1</span>
+   <span class="kw">self</span><span class="ot">.</span><span class="kw">noise</span>:add<span class="ot">(</span><span class="dv">1</span> <span class="ot">-</span> <span class="kw">self</span><span class="ot">.</span><span class="kw">p</span><span class="ot">)</span>:<span class="fu">floor</span><span class="ot">()</span>  <span class="co">-- a percentage of noise</span>
+   <span class="kw">self</span><span class="ot">.</span><span class="kw">output</span>:resizeAs<span class="ot">(</span><span class="kw">input</span><span class="ot">)</span>:copy<span class="ot">(</span><span class="kw">input</span><span class="ot">)</span>
+   <span class="kw">self</span><span class="ot">.</span><span class="kw">output</span>:cmul<span class="ot">(</span><span class="kw">self</span><span class="ot">.</span><span class="kw">noise</span><span class="ot">)</span>
+   <span class="kw">return</span> <span class="kw">self</span><span class="ot">.</span><span class="kw">output</span>
+<span class="kw">end</span></code></pre></td></tr></table>
 <h3 id="exercise">Exercise</h3>
-<p>Well, at this stage, a natural exercise would be to try to integrate this module into the previous tutorials we've done. I would try the following:</p>
+<p>Well, at this stage, a natural exercise would be to try to integrate this module into the previous tutorials we have done. I would try the following:</p>
 <ul>
 <li><p>insert this <code>Dropout</code> module on the input of an autoencoder: that will give you a denoising autoencoder</p></li>
 <li><p>now more interesting: insert this <code>Dropout</code> module into the convolutional network defined in the supervised training tutorial: does it help generalization?</p></li>
 </ul>
 <h2 id="using-cuda-and-the-gpu-to-accelerate-trainingtesting">Using CUDA and the GPU to Accelerate Training/Testing</h2>
-<p>In Torch, it's (almost) transparent to move parts of your computation graph to the GPU.</p>
+<p>In Torch, it is (almost) transparent to move parts of your computation graph to the GPU.</p>
 <h3 id="basics-tensors">Basics: Tensors</h3>
 <p>The most aggressive way of doing it is to set the default Tensor type to <code>Cuda</code>. Once this is done, any subsequent call to <code>torch.Tensor</code> will allocate a <code>torch.CudaTensor</code>. From the Lua interpreter's standpoint, a <code>torch.CudaTensor</code> is really the same as a regular <code>torch.FloatTensor</code>. The only difference is that some operators are not yet implemented, but this is just a matter of time.</p>
 <p>First initialize the environment like this:</p>

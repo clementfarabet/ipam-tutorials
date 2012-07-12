@@ -222,7 +222,7 @@ Z = \sum_{x_1}\sum_{x_2}\dots\sum_{x_n} \prod_{i=1}^N \phi_i(x_i) \prod_{e=1}^E 
 <span class="kw">X</span> <span class="ot">=</span> <span class="kw">X</span> <span class="ot">+</span> randn<span class="ot">(</span><span class="kw">X</span>:size<span class="ot">())/</span><span class="dv">2</span></code></pre></td></tr></table>
 <p>Here are some examples of the noisy input samples:</p>
 <div class="figure">
-<img src="img/noisy.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/3_graphicalmodels/img/noisy.png" /><p class="caption"></p>
 </div>
 <p>Once we have training data, we need to generate all the <em>features</em> \(X\), on which the CRF is conditioned. As for our previous work in supervised learning, it is key to properly whiten / preprocess the training data:</p>
 <table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
@@ -360,11 +360,11 @@ SGD @ iteration 11: objective = 19.331090159347
 ...</code></pre>
 <p>This is inference (<em>i.e.</em> the marginal probabilities for each pixel):</p>
 <div class="figure">
-<img src="img/inference.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/3_graphicalmodels/img/inference.png" /><p class="caption"></p>
 </div>
 <p>And this is the decoding (<em>i.e.</em> the optimal joint configuration):</p>
 <div class="figure">
-<img src="img/decoding.png" /><p class="caption"></p>
+<img src="https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/3_graphicalmodels/img/decoding.png" /><p class="caption"></p>
 </div>
 </body>
 </html>

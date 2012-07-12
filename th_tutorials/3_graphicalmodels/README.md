@@ -247,7 +247,7 @@ X = X + randn(X:size())/2
 
 Here are some examples of the noisy input samples:
 
-![](img/noisy.png)
+![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/3_graphicalmodels/img/noisy.png)
 
 Once we have training data, we need to generate all the _features_ $X$, on which the
 CRF is conditioned. As for our previous work in supervised learning, it is key 
@@ -362,8 +362,8 @@ SGD @ iteration 11: objective = 19.331090159347
 
 This is inference (_i.e._ the marginal probabilities for each pixel):
 
-![](img/inference.png)
+![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/3_graphicalmodels/img/inference.png)
 
 And this is the decoding (_i.e._ the optimal joint configuration):
 
-![](img/decoding.png)
+![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/3_graphicalmodels/img/decoding.png)

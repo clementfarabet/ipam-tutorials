@@ -103,17 +103,36 @@ typing `git reset --hard`.
 ## Installation and Requirements
 
 If you want to set up these tutorials to run on your laptop or another
-computer, you'll need a fairly standard scientific Python stack,
-and you'll also need to install a few
-non-standard project versions of
+computer, you'll need a fairly standard scientific Python stack, with a few
+additional non-standard packages.
 
-* Theano
-* pyautodiff
-* skdata
+The following recipe should do the trick:
 
-Working versions are available in this repo's `py_submodules` directory as git submodules.
+    # install some standard Python packages
+    pip install numpy
+    pip install scipy
+    pip install PIL
+    pip install matplotlib
+    pip install pyzmq
+    pip install tornado
 
-Installing these things is not yet the turn-key process that Python users have
-come to expect.  Let us know after class if you want to set these things up
-and we can work through it during off hours.
+    # install the latest version of IPython
+    pip install git+http://github.com/ipython/ipython.git
+
+    # install latest version of the ipam-tutorial
+    git clone https://github.com/clementfarabet/ipam-tutorials.git
+    cd ipam-tutorials
+    git submodule init
+    git submodule update
+    (cd py_submodules/Theano; python setup.py develop)
+    (cd py_submodules/autodiff; python setup.py develop)
+    (cd py_submodules/skdata; python setup.py develop)
+
+    # try it out
+    cd py_tutorials
+    ipython notebook --pylab=inline
+
+These steps should install everything you need (consider running all this in a
+[virtualenv](http://iamzed.com/2009/05/07/a-primer-on-virtualenv/))
+and finally launch a browser pointed to the tutorials in the IPython dashboard.
 

@@ -1,0 +1,370 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link rel="stylesheet" href="../style.css" type="text/css" />
+  <script src="https://d3eoax9i5htok0.cloudfront.net/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+</head>
+<body>
+<h1 id="graphical-models">Graphical Models</h1>
+<p>In the previous tutorials, we've learned how to train a family of models that ranged from <em>shallow models</em> (linear and logistic regression) to <em>deep models</em> (MLPs, ConvNets). We've seen that however the model was defined, the overall procedure was always the same:</p>
+<ul>
+<li>define a model, and define a set of trainable/adjustable parameters</li>
+<li>choose a loss function, an objective to minimize</li>
+<li>pick an optimization algorithm, to minimize the loss function above, by modifying the trainable parameters</li>
+</ul>
+<p>These three steps are really general, and can be found in many bodies of research: statistics, machine learning, computer vision, operating research, ...</p>
+<p>In this tutorial, we're going to explore a different class of models, which also relies on the procedure above: undirected graphical models, with pairwise and unary potentials.</p>
+<p>To describe graphical models, we use the package <code>gm</code>, which can be installed as any other package: <code>torch-pkg install gm</code>. <code>gm</code> is based on <a href="http://www.di.ens.fr/~mschmidt/Software/UGM.html">UGM</a>, a really nice Matlab implementation of graphical models. This tutorial is for the most part based on Mark Schmidt's introduction to UGM and parameter estimation demos.</p>
+<p>Although a bit out of scope in a deep-learning tutorial session, making the parallel between deep-learning models and graphical models is of interest. In fact, there are many tasks in signal processing that benefit from a structured prediction framework, in which a graphical model imposes a structure on the predictions, and the unary terms of the model are coming from some classifier. For tasks like scene understanding, or OCR, or in general, tasks where there's a need for jointly segmenting <em>and</em> classifying the input data, the combination of deep models and graphical models seems worth exploring.</p>
+<h2 id="defining-a-model">Defining a Model</h2>
+<p>In pairwise undirected graphical models, the joint probability of a particular assignment to all the variables \(x_i\) is represented as a normalized product of a set of non-negative potential functions:</p>
+<p>\[
+p(x_1,x_2,...,x_N) = \frac{1}{Z} \prod_{i=1}^{N} \phi_i(x_i) \prod_{e=1}^{E} \phi_e (x_{e_j},x_{e_k})
+\]</p>
+<p>There is one potential function \(\phi\) for each node \(i\), for each edge \(e\). Each edge connects two nodes, \(e_j\) and \(e_k\). In a full graph, there is one edge between each possible pair of nodes. For common applications, such as computer vision, it's much more common to have locally connected graphs, <em>i.e.</em> graphs in which only (small) subsets of nodes are connected via edges.</p>
+<p>The <em>node potential</em> function \(\phi_i\) gives a non-negative weight to each possible value of the random variable \(x_i\). For example, we might set \(\phi_i(x_1=0)\) to 0.75 and \(\phi_i(x_1=1)\) to 0.25, which means means that node \(1\) has a higher potential of being in state \(0\) than state \(1\). Similarly, the <em>edge potential</em> function \(\phi_e\) gives a non-negative weight to all the combinations that \(x_{e_j}\) and \(x_{e_k}\) can take.</p>
+<p>The normalization constant \(Z\), or partition function, is a scalar value that forces the distribution to sum to one, over all possible joint configurations of the variables:</p>
+<p>\[
+Z = \sum_{x_1}\sum_{x_2}\dots\sum_{x_n} \prod_{i=1}^N \phi_i(x_i) \prod_{e=1}^E \phi_e (x_{e_j},x_{e_k})
+\]</p>
+<p>This normalizing constant ensures that the model defines a valid probability distribution.</p>
+<p>Given the graph structure and the potentials, the <code>gm</code> package includes functions for four tasks:</p>
+<ul>
+<li>Decoding: finding the joint configuration of the variables with the highest probability.</li>
+<li>Inference: computing the normalization constant \(Z\), as well as the probabilities of each variable taking each state.</li>
+<li>Training (or parameter estimation): the task of computing the potentials that maximize the likelihood of set of data.</li>
+</ul>
+<h3 id="a-simple-model">A Simple Model</h3>
+<p>Here we first show how to describe a very simple model. The first thing to define is the adjacency matrix of the graph, which by itself fully describes the architecture of the model. The package provides a couple of standard matrices.</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- define graph</span>
+<span class="kw">nNodes</span> <span class="ot">=</span> <span class="dv">10</span>
+<span class="kw">adjacency</span> <span class="ot">=</span> <span class="kw">gm</span><span class="ot">.</span><span class="kw">adjacency</span><span class="ot">.</span>full<span class="ot">(</span><span class="kw">nNodes</span><span class="ot">)</span></code></pre></td></tr></table>
+<p>Once the adjacency matrix is defined, we create a graph, using the <code>gm.graph</code> method. The only information required is the number of possible (discrete) states per node, and the adjacency matrix. The <code>maxIter</code> parameter is used for loopy graphs, to inform the inference/decoding algorithms on how many iterations they should go through before stopping.</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">nStates</span> <span class="ot">=</span> <span class="dv">2</span>
+<span class="kw">g</span> <span class="ot">=</span> <span class="kw">gm</span><span class="ot">.</span>graph<span class="ot">{</span><span class="kw">adjacency</span><span class="ot">=</span><span class="kw">adjacency</span>, <span class="kw">nStates</span><span class="ot">=</span><span class="kw">nStates</span>, <span class="kw">maxIter</span><span class="ot">=</span><span class="dv">10</span>, <span class="kw">verbose</span><span class="ot">=</span><span class="kw">true</span><span class="ot">}</span></code></pre></td></tr></table>
+<p>In this first example, we are not going to train the potentials, but assume that we already have them. We need to define two types of potentials, the \(\phi_i\) potentials, and the \(\phi_e\) potentials. For each possible configuration, we need to provide a potential. Potentials are positively correlated with probabilities, so a high potential means a high probability.</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- unary potentials</span>
+<span class="kw">nodePot</span> <span class="ot">=</span> Tensor<span class="ot">{{</span><span class="dv">1</span>,<span class="dv">3</span><span class="ot">}</span>, <span class="ot">{</span><span class="dv">9</span>,<span class="dv">1</span><span class="ot">}</span>, <span class="ot">{</span><span class="dv">1</span>,<span class="dv">3</span><span class="ot">}</span>, <span class="ot">{</span><span class="dv">9</span>,<span class="dv">1</span><span class="ot">}</span>, <span class="ot">{</span><span class="dv">1</span>,<span class="dv">1</span><span class="ot">}</span>,
+                 <span class="ot">{</span><span class="dv">1</span>,<span class="dv">3</span><span class="ot">}</span>, <span class="ot">{</span><span class="dv">9</span>,<span class="dv">1</span><span class="ot">}</span>, <span class="ot">{</span><span class="dv">1</span>,<span class="dv">3</span><span class="ot">}</span>, <span class="ot">{</span><span class="dv">9</span>,<span class="dv">1</span><span class="ot">}</span>, <span class="ot">{</span><span class="dv">1</span>,<span class="dv">1</span><span class="ot">}}</span>
+
+<span class="co">-- joint potentials: these are Potts potentials</span>
+<span class="kw">edgePot</span> <span class="ot">=</span> Tensor<span class="ot">(</span><span class="kw">g</span><span class="ot">.</span><span class="kw">nEdges</span>,<span class="kw">nStates</span>,<span class="kw">nStates</span><span class="ot">)</span>
+<span class="kw">basic</span> <span class="ot">=</span> Tensor<span class="ot">{{</span><span class="dv">2</span>,<span class="dv">1</span><span class="ot">}</span>, <span class="ot">{</span><span class="dv">1</span>,<span class="dv">2</span><span class="ot">}}</span>
+<span class="kw">for</span> <span class="kw">e</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">g</span><span class="ot">.</span><span class="kw">nEdges</span> <span class="kw">do</span>
+  <span class="kw">edgePot</span><span class="ot">[</span><span class="kw">e</span><span class="ot">]</span> <span class="ot">=</span> <span class="kw">basic</span>
+<span class="kw">end</span>
+
+<span class="co">-- set potentials</span>
+<span class="kw">g</span>:setPotentials<span class="ot">(</span><span class="kw">nodePot</span>,<span class="kw">edgePot</span><span class="ot">)</span></code></pre></td></tr></table>
+<p>At this stage, we have a fully parametrized graphical model, in which we can do inference and decoding.</p>
+<p>But first a few definitions:</p>
+<ul>
+<li>the <em>decoding</em> task is to find the most likely configuration of the variables.</li>
+<li>the <em>inference</em> task is to find the normalizing constant \(Z\), as well as all the marginal probabilities of individual nodes taking each state.</li>
+</ul>
+<p>There are multiple methods to do inference and decoding. Exact methods involve an exhaustive search through all possible combinations of states.</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">optimal</span> <span class="ot">=</span> <span class="kw">g</span>:decode<span class="ot">(</span><span class="st">&#39;exact&#39;</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="st">&#39;&lt;gm.testme&gt; maximum likelihood configuration:&#39;</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">optimal</span><span class="ot">)</span>
+
+<span class="kw">local</span> <span class="kw">nodeBel</span>,<span class="kw">edgeBel</span>,<span class="kw">logZ</span> <span class="ot">=</span> <span class="kw">g</span>:infer<span class="ot">(</span><span class="st">&#39;exact&#39;</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="st">&#39;&lt;gm.testme&gt; node beliefs:&#39;</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">nodeBel</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="st">&#39;&lt;gm.testme&gt; edge beliefs:&#39;</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">edgeBel</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="st">&#39;&lt;gm.testme&gt; log(Z):&#39;</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">logZ</span><span class="ot">)</span></code></pre></td></tr></table>
+<p>Exact inference is of course impossible for any reasonably-sized model. A very well known inference technique is <em>belief propagation</em>, which is also exact in the case of chain-shaped or tree-shaped graphs. In the case of loopy graphs, the algorithm becomes approximate, and needs to be run iteratively, until convergence, or until a max number of iterations has been reached.</p>
+<p>Same code using belief propagation:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">optimal</span> <span class="ot">=</span> <span class="kw">g</span>:decode<span class="ot">(</span><span class="st">&#39;bp&#39;</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="st">&#39;&lt;gm.testme&gt; optimal config with belief propagation:&#39;</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">optimal</span><span class="ot">)</span>
+
+<span class="kw">local</span> <span class="kw">nodeBel</span>,<span class="kw">edgeBel</span>,<span class="kw">logZ</span> <span class="ot">=</span> <span class="kw">g</span>:infer<span class="ot">(</span><span class="st">&#39;bp&#39;</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="st">&#39;&lt;gm.testme&gt; node beliefs:&#39;</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">nodeBel</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="st">&#39;&lt;gm.testme&gt; edge beliefs:&#39;</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">edgeBel</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="st">&#39;&lt;gm.testme&gt; log(Z):&#39;</span><span class="ot">)</span>
+<span class="fu">print</span><span class="ot">(</span><span class="kw">logZ</span><span class="ot">)</span></code></pre></td></tr></table>
+<p>So that's basically all there is to describing arbitrary graphs, thanks to the adjacency matrix; doing inference; and decoding the optimal joint configuration of states.</p>
+<h3 id="conditional-random-field-for-images">Conditional Random Field for Images</h3>
+<p>Let's now move on to a slightly more complex scenario: instead of defining the potential functions by hand, we're now going to train a set of parameters to produce <em>optimal</em> potential functions, <em>i.e.</em> potential functions that maximize the likelihood of each sample.</p>
+<p>In this example, we will try to denoise an image, which was corrupted by some Gaussian noise. In this case, we have input variables (the observed pixels), and output variables (the clean labels). This is a typical scenario in which we can use conditional random fields (CRFs).</p>
+<p>In CRFs, we have two types of variables: (i) the <em>features</em> \(X\) are treated as fixed non-random variables (observed), and (ii) the <em>labels</em> \(y\) are treated as random variables in a graph, where the parameters of the graph depend on the features.</p>
+<p>In our case, the <em>labels</em> will be the \(32\times32\) clean predictions, which can take binary states, and the <em>features</em> will be the \(32\times32\) pixels, which are continuous grayscale values.</p>
+<p>The first step, as before, is to define the graph structure. We use a 4-connexity lattice, which is rather typical in the image world:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- assuming images of geometry:</span>
+<span class="kw">nRow</span> <span class="ot">=</span> <span class="dv">32</span>
+<span class="kw">nCol</span> <span class="ot">=</span> <span class="dv">32</span>
+<span class="kw">nNodes</span> <span class="ot">=</span> <span class="kw">nRows</span><span class="ot">*</span><span class="kw">nCols</span>
+
+<span class="co">-- define adjacency matrix (4-connexity lattice)</span>
+<span class="kw">local</span> <span class="kw">adj</span> <span class="ot">=</span> <span class="kw">gm</span><span class="ot">.</span><span class="kw">adjacency</span><span class="ot">.</span>lattice2d<span class="ot">(</span><span class="kw">nRows</span>,<span class="kw">nCols</span>,<span class="dv">4</span><span class="ot">)</span>
+
+<span class="co">-- create graph</span>
+<span class="kw">nStates</span> <span class="ot">=</span> <span class="dv">2</span>
+<span class="kw">g</span> <span class="ot">=</span> <span class="kw">gm</span><span class="ot">.</span>graph<span class="ot">{</span><span class="kw">adjacency</span><span class="ot">=</span><span class="kw">adj</span>, <span class="kw">nStates</span><span class="ot">=</span><span class="kw">nStates</span>, <span class="kw">verbose</span><span class="ot">=</span><span class="kw">true</span>, <span class="fu">type</span><span class="ot">=</span><span class="st">&#39;crf&#39;</span>, <span class="kw">maxIter</span><span class="ot">=</span><span class="dv">10</span><span class="ot">}</span></code></pre></td></tr></table>
+<p>Note the <code>type</code> flag, which is set to <code>crf</code>. This defines how the loss function will be computed. We can now move on to the next section: training this CRF.</p>
+<h2 id="training-our-model-crf">Training our Model (CRF)</h2>
+<p>We then need to generate some training data:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- load a clean, black and white image of an X</span>
+<span class="kw">sample</span> <span class="ot">=</span> <span class="kw">image</span><span class="ot">.</span>load<span class="ot">(</span><span class="st">&#39;some_32x32_image.png&#39;</span><span class="ot">)</span>
+
+<span class="co">-- how many instances to generate in the training data:</span>
+<span class="kw">nInstances</span> <span class="ot">=</span> <span class="dv">100</span>
+
+<span class="co">-- generate some labels (y), which correspond to the MAP solution to the CRF:</span>
+<span class="kw">y</span> <span class="ot">=</span> tensor<span class="ot">(</span><span class="kw">nInstances</span>,<span class="kw">nRows</span><span class="ot">*</span><span class="kw">nCols</span><span class="ot">)</span>
+<span class="kw">for</span> <span class="kw">i</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">nInstances</span> <span class="kw">do</span>
+  <span class="kw">y</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span> <span class="ot">=</span> <span class="kw">sample</span>
+<span class="kw">end</span>
+<span class="kw">y</span> <span class="ot">=</span> <span class="kw">y</span> <span class="ot">+</span> <span class="dv">1</span>  <span class="co">-- Lua is 1-based</span>
+
+<span class="co">-- generate an ensemble of noisy versions of that image:</span>
+<span class="kw">X</span> <span class="ot">=</span> tensor<span class="ot">(</span><span class="kw">nInstances</span>,<span class="dv">1</span>,<span class="kw">nRows</span><span class="ot">*</span><span class="kw">nCols</span><span class="ot">)</span>
+<span class="kw">for</span> <span class="kw">i</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">nInstances</span> <span class="kw">do</span>
+  <span class="kw">X</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span> <span class="ot">=</span> <span class="kw">sample</span>
+<span class="kw">end</span>
+<span class="kw">X</span> <span class="ot">=</span> <span class="kw">X</span> <span class="ot">+</span> randn<span class="ot">(</span><span class="kw">X</span>:size<span class="ot">())/</span><span class="dv">2</span></code></pre></td></tr></table>
+<p>Here are some examples of the noisy input samples:</p>
+<div class="figure">
+<img src="img/noisy.png" /><p class="caption"></p>
+</div>
+<p>Once we have training data, we need to generate all the <em>features</em> \(X\), on which the CRF is conditioned. As for our previous work in supervised learning, it is key to properly whiten / preprocess the training data:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- create node features (normalized X and a bias)</span>
+<span class="kw">Xnode</span> <span class="ot">=</span> tensor<span class="ot">(</span><span class="kw">nInstances</span>,<span class="dv">2</span>,<span class="kw">nNodes</span><span class="ot">)</span>
+<span class="kw">Xnode</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="dv">1</span> <span class="ot">}]</span> <span class="ot">=</span> <span class="dv">1</span> <span class="co">-- bias</span>
+<span class="co">-- normalize features:</span>
+<span class="kw">nFeatures</span> <span class="ot">=</span> <span class="kw">X</span>:size<span class="ot">(</span><span class="dv">2</span><span class="ot">)</span>
+<span class="kw">for</span> <span class="kw">f</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">nFeatures</span> <span class="kw">do</span>
+  <span class="kw">local</span> <span class="kw">Xf</span> <span class="ot">=</span> <span class="kw">X</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="kw">f</span> <span class="ot">}]</span>
+  <span class="kw">local</span> <span class="kw">mu</span> <span class="ot">=</span> <span class="kw">Xf</span>:mean<span class="ot">()</span>
+  <span class="kw">local</span> <span class="kw">sigma</span> <span class="ot">=</span> <span class="kw">Xf</span>:std<span class="ot">()</span>
+  <span class="kw">Xf</span>:add<span class="ot">(-</span><span class="kw">mu</span><span class="ot">)</span>:div<span class="ot">(</span><span class="kw">sigma</span><span class="ot">)</span>
+<span class="kw">end</span>
+<span class="kw">Xnode</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="dv">2</span> <span class="ot">}]</span> <span class="ot">=</span> <span class="kw">X</span> <span class="co">-- features (simple normalized grayscale)</span>
+<span class="kw">nNodeFeatures</span> <span class="ot">=</span> <span class="kw">Xnode</span>:size<span class="ot">(</span><span class="dv">2</span><span class="ot">)</span>
+
+<span class="co">-- create edge features</span>
+<span class="kw">nEdges</span> <span class="ot">=</span> <span class="kw">g</span><span class="ot">.</span><span class="kw">edgeEnds</span>:size<span class="ot">(</span><span class="dv">1</span><span class="ot">)</span>
+<span class="kw">nEdgeFeatures</span> <span class="ot">=</span> <span class="kw">nNodeFeatures</span><span class="ot">*</span><span class="dv">2</span><span class="ot">-</span><span class="dv">1</span> <span class="co">-- sharing bias, but not grayscale features</span>
+<span class="kw">Xedge</span> <span class="ot">=</span> zeros<span class="ot">(</span><span class="kw">nInstances</span>,<span class="kw">nEdgeFeatures</span>,<span class="kw">nEdges</span><span class="ot">)</span>
+<span class="kw">for</span> <span class="kw">i</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">nInstances</span> <span class="kw">do</span>
+  <span class="kw">for</span> <span class="kw">e</span> <span class="ot">=</span><span class="dv">1</span>,<span class="kw">nEdges</span> <span class="kw">do</span>
+     <span class="kw">local</span> <span class="kw">n1</span> <span class="ot">=</span> <span class="kw">g</span><span class="ot">.</span><span class="kw">edgeEnds</span><span class="ot">[</span><span class="kw">e</span><span class="ot">][</span><span class="dv">1</span><span class="ot">]</span>
+     <span class="kw">local</span> <span class="kw">n2</span> <span class="ot">=</span> <span class="kw">g</span><span class="ot">.</span><span class="kw">edgeEnds</span><span class="ot">[</span><span class="kw">e</span><span class="ot">][</span><span class="dv">2</span><span class="ot">]</span>
+     <span class="kw">for</span> <span class="kw">f</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">nNodeFeatures</span> <span class="kw">do</span>
+        <span class="co">-- get all features from node1</span>
+        <span class="kw">Xedge</span><span class="ot">[</span><span class="kw">i</span><span class="ot">][</span><span class="kw">f</span><span class="ot">][</span><span class="kw">e</span><span class="ot">]</span> <span class="ot">=</span> <span class="kw">Xnode</span><span class="ot">[</span><span class="kw">i</span><span class="ot">][</span><span class="kw">f</span><span class="ot">][</span><span class="kw">n1</span><span class="ot">]</span>
+     <span class="kw">end</span>
+     <span class="kw">for</span> <span class="kw">f</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">nNodeFeatures</span><span class="ot">-</span><span class="dv">1</span> <span class="kw">do</span>
+        <span class="co">-- get all features from node1, except bias (shared)</span>
+        <span class="kw">Xedge</span><span class="ot">[</span><span class="kw">i</span><span class="ot">][</span><span class="kw">nNodeFeatures</span><span class="ot">+</span><span class="kw">f</span><span class="ot">][</span><span class="kw">e</span><span class="ot">]</span> <span class="ot">=</span> <span class="kw">Xnode</span><span class="ot">[</span><span class="kw">i</span><span class="ot">][</span><span class="kw">f</span><span class="ot">+</span><span class="dv">1</span><span class="ot">][</span><span class="kw">n2</span><span class="ot">]</span>
+     <span class="kw">end</span>
+  <span class="kw">end</span>
+<span class="kw">end</span></code></pre></td></tr></table>
+<p>The last step before training is to decide what the trainable parameters are going to be. To do so, we create a map that associates trainable parameters (weights) to nodes and edges in the graph. Here is the procedure:</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- tie node potentials to parameter vector</span>
+<span class="kw">nodeMap</span> <span class="ot">=</span> zeros<span class="ot">(</span><span class="kw">nNodes</span>,<span class="kw">nStates</span>,<span class="kw">nNodeFeatures</span><span class="ot">)</span>
+<span class="kw">for</span> <span class="kw">f</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">nNodeFeatures</span> <span class="kw">do</span>
+  <span class="kw">nodeMap</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="dv">1</span>,<span class="kw">f</span> <span class="ot">}]</span> <span class="ot">=</span> <span class="kw">f</span>
+<span class="kw">end</span>
+
+<span class="co">-- tie edge potentials to parameter vector</span>
+<span class="kw">local</span> <span class="kw">f</span> <span class="ot">=</span> <span class="kw">nodeMap</span>:<span class="fu">max</span><span class="ot">()</span>
+<span class="kw">edgeMap</span> <span class="ot">=</span> zeros<span class="ot">(</span><span class="kw">nEdges</span>,<span class="kw">nStates</span>,<span class="kw">nStates</span>,<span class="kw">nEdgeFeatures</span><span class="ot">)</span>
+<span class="kw">for</span> <span class="kw">ef</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="kw">nEdgeFeatures</span> <span class="kw">do</span>
+  <span class="kw">edgeMap</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="kw">ef</span> <span class="ot">}]</span> <span class="ot">=</span> <span class="kw">f</span><span class="ot">+</span><span class="kw">ef</span>
+  <span class="kw">edgeMap</span><span class="ot">[{</span> <span class="ot">{}</span>,<span class="dv">2</span>,<span class="dv">2</span>,<span class="kw">ef</span> <span class="ot">}]</span> <span class="ot">=</span> <span class="kw">f</span><span class="ot">+</span><span class="kw">ef</span>
+<span class="kw">end</span>
+
+<span class="co">-- initialize parameters</span>
+<span class="kw">g</span>:initParameters<span class="ot">(</span><span class="kw">nodeMap</span>,<span class="kw">edgeMap</span><span class="ot">)</span></code></pre></td></tr></table>
+<p>And voila!, we can now train the CRF using arbitrary optimization techniques, as we did with the MLPs, ConvNets, and autoencoders.</p>
+<p>In this case, we minimize the negative log-likelihood in order to maximize the likelihood. The negative log-likelihood (and its) gradient are computed by the <code>nll()</code> method of our graph (remember that we create the graph with the flag <code>type='crf'</code>, which produces the correct <code>nll()</code> method).</p>
+<p>With log-linear CRFs, the negative log-likelihood is still differentiable and jointly convex in the node and edge parameters, so we could compute its optimal value using a batch algorithm, such as L-BFGS. As usual though, if the training data is quite large, starting with an epoch or two of SGD can be significantly faster, and then turning to simple averaging SGD might be an option, as shown by <a href="http://leon.bottou.org/projects/sgd">Leon Bottou</a>.</p>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- and train on 30 samples</span>
+<span class="kw">sgdconf</span> <span class="ot">=</span> <span class="ot">{</span><span class="kw">learningRate</span><span class="ot">=</span><span class="dv">1e-3</span><span class="ot">}</span>
+<span class="kw">for</span> <span class="kw">iter</span> <span class="ot">=</span> <span class="dv">1</span>,<span class="dv">100</span> <span class="kw">do</span>
+  <span class="kw">local</span> <span class="kw">i</span> <span class="ot">=</span> <span class="fu">floor</span><span class="ot">(</span>uniform<span class="ot">(</span><span class="dv">1</span>,<span class="kw">nInstances</span><span class="ot">)+</span><span class="dv">0.5</span><span class="ot">)</span>
+  <span class="kw">local</span> <span class="kw">feval</span> <span class="ot">=</span> <span class="kw">function</span><span class="ot">()</span>
+     <span class="kw">return</span> <span class="kw">g</span>:nll<span class="ot">(</span><span class="kw">Xnode</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span>,<span class="kw">Xedge</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span>,<span class="kw">y</span><span class="ot">[</span><span class="kw">i</span><span class="ot">]</span>,<span class="st">&#39;bp&#39;</span><span class="ot">)</span>
+  <span class="kw">end</span>
+  <span class="kw">optim</span><span class="ot">.</span>sgd<span class="ot">(</span><span class="kw">feval</span>,<span class="kw">g</span><span class="ot">.</span><span class="kw">w</span>,<span class="kw">sgdconf</span><span class="ot">)</span>
+<span class="kw">end</span></code></pre></td></tr></table>
+<p>Note/Exercise: the trainable parameters are availabel in <code>g.w</code>. Can you infer how many trainable parameters are there in this example? Since you have access to the outer loop of the SGD trainer, can you easily implement an L2 regularization?</p>
+<p>The results of the training procedure are shown here:</p>
+<pre class="sourceCode bash"><code class="sourceCode bash">t<span class="kw">7&gt;</span> gm.examples.<span class="fu">trainCRF()</span>
+SGD @ iteration 1: objective = 709.78271289324
+SGD @ iteration 2: objective = 86.476069966592
+SGD @ iteration 3: objective = 22.048118240666
+SGD @ iteration 4: objective = 10.34447115497
+SGD @ iteration 5: objective = 12.507434214913
+SGD @ iteration 6: objective = -0.24103941715157
+SGD @ iteration 7: objective = 13.513625673658
+SGD @ iteration 8: objective = 23.680651547275
+SGD @ iteration 9: objective = 13.759790868401
+SGD @ iteration 10: objective = 24.419772339165
+SGD @ iteration 11: objective = 19.331090159347
+...</code></pre>
+<p>This is inference (<em>i.e.</em> the marginal probabilities for each pixel):</p>
+<div class="figure">
+<img src="img/inference.png" /><p class="caption"></p>
+</div>
+<p>And this is the decoding (<em>i.e.</em> the optimal joint configuration):</p>
+<div class="figure">
+<img src="img/decoding.png" /><p class="caption"></p>
+</div>
+</body>
+</html>

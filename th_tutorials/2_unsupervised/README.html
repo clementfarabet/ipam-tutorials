@@ -1,16 +1,30 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-   <title>Torch7 Packages</title>
-   <style>
-      body {font-family:helvetica,arial; margin:auto; padding:0; width:600px;}
-      a {color:#777;text-decoration:none;}
-      h1 {color:#777;background:#eee;padding:10px;margin-top:0px;padding-top:20px;text-align:center;}
-      h2 {color:#444;}
-      pre {background:#eee;color:#222;width:572px;padding:10px;
-           overflow:scroll;border-style:solid;border-color:#ddd;border-width:4px;
-           -moz-border-radius: 15px; border-radius: 15px;}
-   </style>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+  <link rel="stylesheet" href="../style.css" type="text/css" />
 </head>
 <body>
 <h1 id="unsupervised-learning">Unsupervised Learning</h1>
@@ -29,7 +43,8 @@
 <li>3_train.lua</li>
 </ul>
 <p>And a top file, <code>doall.lua</code>, runs the complete experiment. In this case though, there are too many inter-dependencies between files, so they can be loaded individually. If you still want to interact with the code, run:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">torch</span> <span class="ot">-</span><span class="kw">i</span> <span class="kw">doall</span><span class="ot">.</span><span class="kw">lua</span></code></pre>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">torch</span> <span class="ot">-</span><span class="kw">i</span> <span class="kw">doall</span><span class="ot">.</span><span class="kw">lua</span></code></pre></td></tr></table>
 <p>And issue ctrl+C at anytime, to kill the execution. You will then have access to an interpreter, and be able to explore any of the variables (model, data, ...).</p>
 <p>The complete tutorial uses a version of the Berkeley dataset, which is already locally normalized (preprocessed), with 56x56 patches randomly extracted from the original images.</p>
 <h2 id="step-1-models-loss-functions">Step 1: Models &amp; Loss functions</h2>
@@ -51,20 +66,41 @@
 <p>The code z typically has less dimensions than y, which forces the autoencoder to learn a good representation of the data. In its simplest form (linear), an autoencoder learns to project the data onto its first principal components. If the code z has as many components as y, then no compression is required, and the model could typically end up learning the identity function. Now if the encoder has a non-linear form (using a tanh, or using a multi-layered model), then the autoencoder can learn a potentially more powerful representation of the data.</p>
 <p>To describe the model, we use the <em>unsup</em> package, which provides templates to build autoencoders.</p>
 <p>The first step is to describe an encoder, which we can do by using any of the modules available in nn:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">encoder</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">encoder</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
 <span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">inputSize</span>,<span class="kw">outputSize</span><span class="ot">))</span>
-<span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Tanh<span class="ot">())</span></code></pre>
+<span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Tanh<span class="ot">())</span></code></pre></td></tr></table>
 <p>The second step is to describe the decoder, a simple linear module:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">decoder</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
-<span class="kw">decoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">outputSize</span>,<span class="kw">inputSize</span><span class="ot">))</span></code></pre>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">decoder</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
+<span class="kw">decoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">outputSize</span>,<span class="kw">inputSize</span><span class="ot">))</span></code></pre></td></tr></table>
 <p>Finally, we use the built-in AutoEncoder class from unsup, which automatically provides a mean-square error loss:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">module</span> <span class="ot">=</span> <span class="kw">unsup</span><span class="ot">.</span>AutoEncoder<span class="ot">(</span><span class="kw">encoder</span>, <span class="kw">decoder</span>, <span class="kw">params</span><span class="ot">.</span><span class="kw">beta</span><span class="ot">)</span></code></pre>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">module</span> <span class="ot">=</span> <span class="kw">unsup</span><span class="ot">.</span>AutoEncoder<span class="ot">(</span><span class="kw">encoder</span>, <span class="kw">decoder</span>, <span class="kw">params</span><span class="ot">.</span><span class="kw">beta</span><span class="ot">)</span></code></pre></td></tr></table>
 <p>At this stage, estimating the loss (reconstruction error) can be done like this, for arbitrary inputs:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">input</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>randn<span class="ot">(</span><span class="kw">inputSize</span><span class="ot">)</span>
-<span class="kw">loss</span> <span class="ot">=</span> <span class="kw">module</span>:updateOutput<span class="ot">(</span><span class="kw">input</span>,<span class="kw">input</span><span class="ot">)</span></code></pre>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">input</span> <span class="ot">=</span> <span class="kw">torch</span><span class="ot">.</span>randn<span class="ot">(</span><span class="kw">inputSize</span><span class="ot">)</span>
+<span class="kw">loss</span> <span class="ot">=</span> <span class="kw">module</span>:updateOutput<span class="ot">(</span><span class="kw">input</span>,<span class="kw">input</span><span class="ot">)</span></code></pre></td></tr></table>
 <p>Note that we need to provide the input, and a target that we wish to reconstruct. In this case the target is the input, but in some cases, we might want to provide a noisy version of the input, and force the autoencoder to predict the correct input (this is what denoising autoencoders do).</p>
 <p>As for any nn module, gradients can be estimated this way:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- get parameters and gradient pointers</span>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- get parameters and gradient pointers</span>
 <span class="kw">x</span>,<span class="kw">dl_dx</span> <span class="ot">=</span> <span class="kw">module</span>:getParameters<span class="ot">()</span>
  
 <span class="co">-- compute loss</span>
@@ -76,7 +112,7 @@
 <span class="kw">module</span>:accGradParameters<span class="ot">(</span><span class="kw">input</span>, <span class="kw">input</span><span class="ot">)</span>
  
 <span class="co">-- at this stage, dl_dx contains the gradients of the loss wrt</span>
-<span class="co">-- the trainable parameters x</span></code></pre>
+<span class="co">-- the trainable parameters x</span></code></pre></td></tr></table>
 <p>One serious potential issue with auto-encoders is that if there is no other constraint besides minimizing the reconstruction error, then an auto-encoder with n inputs and an encoding of dimension at least n could potentially just learn the identity function, and fail to differentiate test examples (from the training distribution) from other input configurations.</p>
 <p>Surprisingly, experiments reported in <code>Bengio 2007</code> nonetheless suggest that in practice, when trained with stochastic gradient descent, non-linear auto-encoders with more hidden units than inputs (called overcomplete) yield useful representations (in the sense of classification error measured on a network taking this representation in input). A simple explanation is based on the observation that stochastic gradient descent with early stopping is similar to an L2 regularization of the parameters. To achieve perfect reconstruction of continuous inputs, a one-hidden layer auto-encoder with non-linear hidden units (exactly like in the above code) needs very small weights in the first (encoding) layer (to bring the non-linearity of the hidden units in their linear regime) and very large weights in the second (decoding) layer.</p>
 <p>With binary inputs, very large weights are also needed to completely minimize the reconstruction error. Since the implicit or explicit regularization makes it difficult to reach large-weight solutions, the optimization algorithm finds encodings which only work well for examples similar to those in the training set, which is what we want. It means that the representation is exploiting statistical regularities present in the training set, rather than learning to replicate the identity function.</p>
@@ -117,19 +153,42 @@
 <p>The first two terms are the basic sparse coding presented above, while the 3rd term is our predictive sparse regressor. Minimizing this loss yields an encoder that produces sparse decompositions of the input signal.</p>
 <p>With the unsup package, this can be implemented very simply.</p>
 <p>We define an encoder first:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">encoder</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">encoder</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span>Sequential<span class="ot">()</span>
 <span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Linear<span class="ot">(</span><span class="kw">inputSize</span>,<span class="kw">outputSize</span><span class="ot">))</span>
 <span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Tanh<span class="ot">())</span>
-<span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Diag<span class="ot">(</span><span class="kw">outputSize</span><span class="ot">))</span></code></pre>
+<span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Diag<span class="ot">(</span><span class="kw">outputSize</span><span class="ot">))</span></code></pre></td></tr></table>
 <p>Then the decoder is the L1 solution presented above:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">decoder</span> <span class="ot">=</span> <span class="kw">unsup</span><span class="ot">.</span>LinearFistaL1<span class="ot">(</span><span class="kw">inputSize</span>, <span class="kw">outputSize</span>, <span class="kw">params</span><span class="ot">.</span><span class="kw">lambda</span><span class="ot">)</span></code></pre>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">decoder</span> <span class="ot">=</span> <span class="kw">unsup</span><span class="ot">.</span>LinearFistaL1<span class="ot">(</span><span class="kw">inputSize</span>, <span class="kw">outputSize</span>, <span class="kw">params</span><span class="ot">.</span><span class="kw">lambda</span><span class="ot">)</span></code></pre></td></tr></table>
 <p>Under the hood, this decoder relies on FISTA to find the optimal sparse code. FISTA is available in the optim package.</p>
 <p>Finally, both modules can be packaged together into an autoencoder. We can't use the basic AutoEncoder class to do this, because the LinearFistaL1 decoder is a bit peculiar. Insted, we use a special-purpose PSD container:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">module</span> <span class="ot">=</span> <span class="kw">unsup</span><span class="ot">.</span>PSD<span class="ot">(</span><span class="kw">encoder</span>, <span class="kw">decoder</span><span class="ot">)</span></code></pre>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">module</span> <span class="ot">=</span> <span class="kw">unsup</span><span class="ot">.</span>PSD<span class="ot">(</span><span class="kw">encoder</span>, <span class="kw">decoder</span><span class="ot">)</span></code></pre></td></tr></table>
 <h4 id="convolutional-psd">Convolutional PSD</h4>
 <p>For vision/image applications, fully connected linear autoencoders are often overkill, in their number of trainable parameters. Using convolutional filters, inspired by convolutional networks (see supervised learning tutorial on ConvNets) can help learn much better filters for vision.</p>
 <p>A convolutional version of the PSD autoencoder can be derived by simply replacing the encoder and decoder by convolutional counterparts:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- connection table:</span>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- connection table:</span>
 <span class="kw">conntable</span> <span class="ot">=</span> <span class="kw">nn</span><span class="ot">.</span><span class="kw">tables</span><span class="ot">.</span>full<span class="ot">(</span><span class="dv">1</span>, <span class="dv">32</span><span class="ot">)</span>
  
 <span class="co">-- decoder&#39;s table:</span>
@@ -145,12 +204,63 @@
 <span class="kw">encoder</span>:add<span class="ot">(</span><span class="kw">nn</span><span class="ot">.</span>Diag<span class="ot">(</span><span class="kw">outputSize</span><span class="ot">))</span>
  
 <span class="co">-- decoder is L1 solution:</span>
-<span class="kw">decoder</span> <span class="ot">=</span> <span class="kw">unsup</span><span class="ot">.</span>SpatialConvFistaL1<span class="ot">(</span><span class="kw">decodertable</span>, <span class="dv">5</span>, <span class="dv">5</span>, <span class="dv">25</span>, <span class="dv">25</span><span class="ot">)</span></code></pre>
+<span class="kw">decoder</span> <span class="ot">=</span> <span class="kw">unsup</span><span class="ot">.</span>SpatialConvFistaL1<span class="ot">(</span><span class="kw">decodertable</span>, <span class="dv">5</span>, <span class="dv">5</span>, <span class="dv">25</span>, <span class="dv">25</span><span class="ot">)</span></code></pre></td></tr></table>
 <h4 id="exercises-1">Exercises:</h4>
 <p>As for the regular autoencoders, you can play with the input size, but what mostly affects the models' performance now is the filter size (in its convolutional version), and the sparsity coefficient. Try to see how the sparsity coefficient affects the (encoder) weights. Do you observe a checkerboard effect? Why?</p>
 <h2 id="step-2-training">Step 2: Training</h2>
 <p>If you've read the tutorial on supervised learning, training a model unsupervised is basically equivalent. We first define a closure that computes the loss, and the gradients of that loss wrt the trainable parameters, and then pass this closure to one of the optimizers in optim. As usual, we use SGD to train autoencoders on large amounts of data:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="co">-- some parameters</span>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="co">-- some parameters</span>
 <span class="kw">local</span> <span class="kw">minibatchsize</span> <span class="ot">=</span> <span class="dv">50</span>
  
 <span class="co">-- parameters</span>
@@ -200,7 +310,7 @@
    <span class="co">-- do SGD step</span>
    <span class="kw">optim</span><span class="ot">.</span>sgd<span class="ot">(</span><span class="kw">feval</span>, <span class="kw">x</span>, <span class="kw">sgdconf</span><span class="ot">)</span>
  
-<span class="kw">end</span></code></pre>
+<span class="kw">end</span></code></pre></td></tr></table>
 <p>Ok, that's it, given some training data, this code will loop over all samples, and minimize the reconstruction error, using stochastic gradient descent.</p>
 <h4 id="exercises-2">Exercises:</h4>
 <p>As usual, we have access to several optimization techniques, and can set the batch size. How does the batch size affect the reconstruction error?</p>
@@ -208,7 +318,46 @@
 <p>Training PSD autoencoders, especially convolutional ones, is a particularly challenging optimization problem. This is due to the loss function, which contains particularly opposing terms. As a result, the encoder's weights usually get stuck with checker board patterns for a long time, before starting to properly minimize the cost function. To east the optimization a little bit, we can use second-order information, to condition each parameter individually.</p>
 <p>A simple way of doing that, which was proposed in (Lecun, 1987), is to compute an approximation of the diagonal terms of the Hessian, and adapt the learning rate of each parameter in the system proportionally to the inverse of the diagonal terms.</p>
 <p>Computing the diagonal terms is very analogous to computing the gradients themselves:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">if</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">hessian</span> <span class="kw">and</span> <span class="kw">math</span><span class="ot">.</span>fmod<span class="ot">(</span><span class="kw">t</span> , <span class="kw">params</span><span class="ot">.</span><span class="kw">hessianinterval</span><span class="ot">)</span> <span class="ot">==</span> <span class="dv">1</span> <span class="kw">then</span>
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">if</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">hessian</span> <span class="kw">and</span> <span class="kw">math</span><span class="ot">.</span>fmod<span class="ot">(</span><span class="kw">t</span> , <span class="kw">params</span><span class="ot">.</span><span class="kw">hessianinterval</span><span class="ot">)</span> <span class="ot">==</span> <span class="dv">1</span> <span class="kw">then</span>
   <span class="co">-- some extra vars:</span>
   <span class="kw">local</span> <span class="kw">hessiansamples</span> <span class="ot">=</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">hessiansamples</span>
   <span class="kw">local</span> <span class="kw">minhessian</span> <span class="ot">=</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">minhessian</span>
@@ -246,13 +395,18 @@
 
   <span class="co">-- generate learning rates</span>
   <span class="kw">etas</span>:fill<span class="ot">(</span><span class="dv">1</span><span class="ot">)</span>:cdiv<span class="ot">(</span><span class="kw">ddl_ddx_avg</span><span class="ot">)</span>
-<span class="kw">end</span></code></pre>
+<span class="kw">end</span></code></pre></td></tr></table>
 <p>The result of this code is a vector <em>etas</em>, which contains a list of learning rates, one for each trainable parameter in the system. These <em>etas</em> can be re-estimated every once in a while, depending on the complexity of the model / data. They can then simply be passed to the SGD function, which will use them as individual learning rates:</p>
-<pre class="sourceCode lua"><code class="sourceCode lua"><span class="kw">sgdconf</span> <span class="ot">=</span> <span class="kw">sgdconf</span> <span class="kw">or</span> <span class="ot">{</span><span class="kw">learningRate</span> <span class="ot">=</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">eta</span>,
+<table class="sourceCode lua numberLines"><tr class="sourceCode"><td class="lineNumbers"><pre>1
+2
+3
+4
+5
+</pre></td><td class="sourceCode"><pre><code class="sourceCode lua"><span class="kw">sgdconf</span> <span class="ot">=</span> <span class="kw">sgdconf</span> <span class="kw">or</span> <span class="ot">{</span><span class="kw">learningRate</span> <span class="ot">=</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">eta</span>,
                       <span class="kw">learningRateDecay</span> <span class="ot">=</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">etadecay</span>,
                       <span class="kw">learningRates</span> <span class="ot">=</span> <span class="kw">etas</span>,
                       <span class="kw">momentum</span> <span class="ot">=</span> <span class="kw">params</span><span class="ot">.</span><span class="kw">momentum</span><span class="ot">}</span>
-<span class="kw">_</span>,<span class="kw">fs</span> <span class="ot">=</span> <span class="kw">optim</span><span class="ot">.</span>sgd<span class="ot">(</span><span class="kw">feval</span>, <span class="kw">x</span>, <span class="kw">sgdconf</span><span class="ot">)</span></code></pre>
+<span class="kw">_</span>,<span class="kw">fs</span> <span class="ot">=</span> <span class="kw">optim</span><span class="ot">.</span>sgd<span class="ot">(</span><span class="kw">feval</span>, <span class="kw">x</span>, <span class="kw">sgdconf</span><span class="ot">)</span></code></pre></td></tr></table>
 <h2 id="some-results">Some Results</h2>
 <p>Here's a snapshot that shows PSD learning 256 encoder filters, after seeing 80,000 training patches (9x9), randomly sampled from the Berkeley dataset.</p>
 <p>Initial weights:</p>
@@ -270,3 +424,5 @@
 <p>Notice how the checker board effect is still present after 40,000 samples, but completely gone at the end.</p>
 <h4 id="exercises-3">Exercises:</h4>
 <p>Given the small amount of time, try to reproduce these results, but with only a handful of filters (say 8 or 16).</p>
+</body>
+</html>

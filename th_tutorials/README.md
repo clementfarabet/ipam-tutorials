@@ -23,11 +23,13 @@ GitHub Links:
   * [Day 1: Setup / Basics / Getting Started](https://github.com/clementfarabet/ipam-tutorials/tree/master/th_tutorials/0_getstarted)
   * [Day 2: Supervised Learning](https://github.com/clementfarabet/ipam-tutorials/tree/master/th_tutorials/1_supervised)
   * [Day 3: Unsupervised Learning](https://github.com/clementfarabet/ipam-tutorials/tree/master/th_tutorials/2_unsupervised)
-  * [Day 4: Putting it all together](https://github.com/clementfarabet/ipam-tutorials/tree/master/th_tutorials/3_morestuff)
+  * [Day 4: Graphical Models](https://github.com/clementfarabet/ipam-tutorials/tree/master/th_tutorials/3_graphicalmodels)
+  * [Days 5+: Going Further](https://github.com/clementfarabet/ipam-tutorials/tree/master/th_tutorials/4_morestuff)
 
 HTML Links (if you're browsing the local repo):
 
   * [Day 1: Setup / Basics / Getting Started](0_getstarted/README.html)
   * [Day 2: Supervised Learning](1_supervised/README.html)
   * [Day 3: Unsupervised Learning](2_unsupervised/README.html)
-  * [Day 4: Putting it all together](3_morestuff/README.html)
+  * [Day 4: Graphical Models](3_graphicalmodels/README.html)
+  * [Days 5+: Going Further](4_morestuff/README.html)

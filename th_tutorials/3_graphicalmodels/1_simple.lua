@@ -1,4 +1,7 @@
 
+-- graphical model lib
+require 'gm'
+
 -- shortcuts
 local tensor = torch.Tensor
 local zeros = torch.zeros

@@ -1,4 +1,7 @@
 
+-- graphical model lib
+require 'gm'
+
 -- shortcuts
 local tensor = torch.Tensor
 local zeros = torch.zeros
@@ -102,12 +105,15 @@ do
    g:initParameters(nodeMap,edgeMap)
 
    -- and train on 30 samples
-   local learningRate=1e-3
+   require 'optim'
+   local sgdconf = {learningRate=1e-3}
    for iter = 1,100 do
-      local i = floor(uniform(1,nInstances)+0.5)
-      local f,grad = g:nll(Xnode[i],Xedge[i],y[i],'bp')
-      g.w:add(-learningRate, grad)
-      print('SGD @ iteration ' .. iter .. ': objective = ' .. f)
+     local i = floor(uniform(1,nInstances)+0.5)
+     local feval = function()
+        return g:nll(Xnode[i],Xedge[i],y[i],'bp')
+     end
+     _,fs = optim.sgd(feval,g.w,sgdconf)
+     print('SGD @ iteration ' .. iter .. ': objective = ' .. fs[1])
    end
 
    -- the model is trained, generate node/edge potentials, and test

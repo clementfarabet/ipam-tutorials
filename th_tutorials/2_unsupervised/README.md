@@ -23,7 +23,7 @@ And a top file, `doall.lua`, runs the complete experiment. In this case though, 
 too many inter-dependencies between files, so they can be loaded individually. If you still want
 to interact with the code, run:
 
-```lua
+```{.lua .numberLines}
 torch -i doall.lua
 ```
 
@@ -40,19 +40,25 @@ Step 1: Models & Loss functions
 
 An autoencoder is a model that takes a vector input y, maps it into a hidden representation z (code) using an encoder which typically has this form:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/auto_encoder.png)
+$$
+z = \text{s}(W_e y + b_e)
+$$
 
-where s is a non-linear activation function (the tanh function is a common choice), W_e the encoding matrix and b_e a vector of bias parameters.
+where $\text{s}$ is a non-linear activation function (the tanh function is a common choice), W_e the encoding matrix and b_e a vector of bias parameters.
 
 The hidden representation z, often called code, is then mapped back into the space of y, using a decoder of this form:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/auto_decoder.png)
+$$
+\tilde{y} = W_d z + b_d
+$$
 
 where W_d is the decoding matrix and b_d a vector of bias parameters.
 
 The goal of the autoencoder is to minimize the reconstruction error, which is represented by a distance between y and y~. The most common type of distance is the mean squared error:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/mse_loss.png)
+$$
+l(y,\tilde{y}) = \| y - \tilde{y} \|_2^2 = \| y - (W_dz+b_d) \|_2^2
+$$
 
 The code z typically has less dimensions than y, which forces the autoencoder to learn a good representation of the data. In its simplest form (linear), an autoencoder learns to project the data onto its first principal components. If the code z has as many components as y, then no compression is required, and the model could typically end up learning the identity function. Now if the encoder has a non-linear form (using a tanh, or using a multi-layered model), then the autoencoder can learn a potentially more powerful representation of the data.
 
@@ -60,7 +66,7 @@ To describe the model, we use the _unsup_ package, which provides templates to b
 
 The first step is to describe an encoder, which we can do by using any of the modules available in nn:
 
-```lua
+```{.lua .numberLines}
 encoder = nn.Sequential()
 encoder:add(nn.Linear(inputSize,outputSize))
 encoder:add(nn.Tanh())
@@ -68,20 +74,20 @@ encoder:add(nn.Tanh())
 
 The second step is to describe the decoder, a simple linear module:
 
-```lua
+```{.lua .numberLines}
 decoder = nn.Sequential()
 decoder:add(nn.Linear(outputSize,inputSize))
 ```
 
 Finally, we use the built-in AutoEncoder class from unsup, which automatically provides a mean-square error loss:
 
-```lua
+```{.lua .numberLines}
 module = unsup.AutoEncoder(encoder, decoder, params.beta)
 ```
 
 At this stage, estimating the loss (reconstruction error) can be done like this, for arbitrary inputs:
 
-```lua
+```{.lua .numberLines}
 input = torch.randn(inputSize)
 loss = module:updateOutput(input,input)
 ```
@@ -90,7 +96,7 @@ Note that we need to provide the input, and a target that we wish to reconstruct
 
 As for any nn module, gradients can be estimated this way:
 
-```lua
+```{.lua .numberLines}
 -- get parameters and gradient pointers
 x,dl_dx = module:getParameters()
  
@@ -173,11 +179,15 @@ In this tutorial we propose a simple and efficient algorithm to learn overcomple
 
 Finding a representation z in R^m for a given signal y in R^n by linear combination of an overcomplete set of basis vectors, columns of matrix B with m > n, has infinitely many solutions. In optimal sparse coding, the problem is formulated as:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/sparse_coding.png)
+$$
+\min \| z \|_0 \quad \text{s.t.} \quad y = Bz
+$$
 
 where the l0 norm is defined as the number of non-zero elements in a given vector. This is a combinatorial problem, and a common approximation of it is the following optimization problem:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/sparse_coding_optim.png)
+$$
+l(y,z;B) = \frac{1}{2} \| y - Bz \|_2^2 + \lambda \| z \|_1
+$$
 
 This particular formulation, called Basis Pursuit Denoising, can be seen as minimizing an objective that penalizes the reconstruction error using a linear basis set and the sparsity of the corresponding representation. While this formulation is nice, inference requires running some sort of iterative minimization algorithm that is always computationally expensive. In the following we present a predictive version of this algorithm, based on an autoencoder formulation, which yields fixed-time, and fast inference.
 
@@ -185,21 +195,25 @@ This particular formulation, called Basis Pursuit Denoising, can be seen as mini
 
 In order to make inference efficient, we train a non-linear regressor that maps input signals y to sparse representations z. We consider the following nonlinear mapping:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/psd_encoder.png)
+$$
+f(y;g,W,d) = g \tanh(Wy+d)
+$$
 
 where W is a weight trainable matrix, d a trainable vector of biases, and g a vector of gains. We want to train this nonlinear mapping as a predictor for the optimal solution to the sparse coding algorithm presented in the previsous section.
 
 The following loss function, called predictive sparse decomposition, can help us achieve such a goal:
 
-![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/2_unsupervised/img/psd_loss.png)
+$$
+l(y,z;b,g,W,d) = \| y - Bz \|_2^2 + \lambda \| z \|_1 + \alpha \| z - f(y;g,W,d) \|_2^2
+$$
 
-The first two terms are the basic sparse coding presented above, while the 3rd term is our predictive sparse regressor. Minimizing this loss yields an encoder that produces sparse decompositions of the input signal.
+The first two terms are the basic sparse coding presented above, while the third term is our predictive sparse regressor. Minimizing this loss yields an encoder that produces sparse decompositions of the input signal.
 
 With the unsup package, this can be implemented very simply.
 
 We define an encoder first:
 
-```lua
+```{.lua .numberLines}
 encoder = nn.Sequential()
 encoder:add(nn.Linear(inputSize,outputSize))
 encoder:add(nn.Tanh())
@@ -208,7 +222,7 @@ encoder:add(nn.Diag(outputSize))
 
 Then the decoder is the L1 solution presented above:
 
-```lua
+```{.lua .numberLines}
 decoder = unsup.LinearFistaL1(inputSize, outputSize, params.lambda)
 ```
 
@@ -216,7 +230,7 @@ Under the hood, this decoder relies on FISTA to find the optimal sparse code. FI
 
 Finally, both modules can be packaged together into an autoencoder. We can't use the basic AutoEncoder class to do this, because the LinearFistaL1 decoder is a bit peculiar. Insted, we use a special-purpose PSD container:
 
-```lua
+```{.lua .numberLines}
 module = unsup.PSD(encoder, decoder)
 ```
 
@@ -226,7 +240,7 @@ For vision/image applications, fully connected linear autoencoders are often ove
 
 A convolutional version of the PSD autoencoder can be derived by simply replacing the encoder and decoder by convolutional counterparts:
 
-```lua
+```{.lua .numberLines}
 -- connection table:
 conntable = nn.tables.full(1, 32)
  
@@ -258,7 +272,7 @@ Step 2: Training
 
 If you've read the tutorial on supervised learning, training a model unsupervised is basically equivalent. We first define a closure that computes the loss, and the gradients of that loss wrt the trainable parameters, and then pass this closure to one of the optimizers in optim. As usual, we use SGD to train autoencoders on large amounts of data:
 
-```lua
+```{.lua .numberLines}
 -- some parameters
 local minibatchsize = 50
  
@@ -334,7 +348,7 @@ proportionally to the inverse of the diagonal terms.
 
 Computing the diagonal terms is very analogous to computing the gradients themselves:
 
-```lua
+```{.lua .numberLines}
 if params.hessian and math.fmod(t , params.hessianinterval) == 1 then
   -- some extra vars:
   local hessiansamples = params.hessiansamples
@@ -381,7 +395,7 @@ for each trainable parameter in the system. These _etas_ can be re-estimated eve
 once in a while, depending on the complexity of the model / data. They can then
 simply be passed to the SGD function, which will use them as individual learning rates:
 
-```lua
+```{.lua .numberLines}
 sgdconf = sgdconf or {learningRate = params.eta,
                       learningRateDecay = params.etadecay,
                       learningRates = etas,

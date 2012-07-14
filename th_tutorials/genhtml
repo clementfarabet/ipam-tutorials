@@ -1,0 +1,6 @@
+cd .;                 pandoc README.md -c  ./style.css -s --highlight-style pygments --mathjax -o README.html
+cd 0_getstarted;      pandoc README.md -c ../style.css -s --highlight-style pygments --mathjax -o README.html; cd ..
+cd 1_supervised;      pandoc README.md -c ../style.css -s --highlight-style pygments --mathjax -o README.html; cd ..
+cd 2_unsupervised;    pandoc README.md -c ../style.css -s --highlight-style pygments --mathjax -o README.html; cd ..
+cd 3_graphicalmodels; pandoc README.md -c ../style.css -s --highlight-style pygments --mathjax -o README.html; cd ..
+cd 4_morestuff;       pandoc README.md -c ../style.css -s --highlight-style pygments --mathjax -o README.html; cd ..

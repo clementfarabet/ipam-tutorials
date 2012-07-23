@@ -1,6 +1,8 @@
 Tutorials on Deep-Learning: from Supervised to Unsupervised Learning
 ====================================================================
 
+**NOTE: THIS TUTORIAL HAS BEEN MOVED TO THIS [LOCATION](http://code.cogbits.com/wiki)**
+
 These tutorials were designed for the IPAM Summer School on
 Deep Learning: [more info here.](http://www.ipam.ucla.edu/programs/gss2012/).
 

@@ -2,21 +2,21 @@ Getting Started with Torch
 ==========================
 
 Torch7 provides a Matlab-like environment for state-of-the-art machine
-learning algorithms. It is easy to use and provides a very efficient 
+learning algorithms. It is easy to use and provides a very efficient
 implementation, thanks to an easy and fast scripting language,
 [Lua](http://www.lua.org/) and an underlying C/OpenMP/CUDA implementation.
 
-Torch7 is developed at 
-[Idiap Research Institute](http://www.idiap.ch/), 
+Torch7 is developed at
+[Idiap Research Institute](http://www.idiap.ch/),
 [New York University](http://www.cs.nyu.edu/~yann/) and
-[NEC Laboratories America](http://www.nec-labs.com/). 
+[NEC Laboratories America](http://www.nec-labs.com/).
 
-At this time, Torch7 is maintained by 
-[Ronan Collobert](http://ronan.collobert.com/), 
+At this time, Torch7 is maintained by
+[Ronan Collobert](http://ronan.collobert.com/),
 [Clement Farabet](http://www.clement.farabet.net/)
-and 
+and
 [Koray Kavukcuoglu](http://koray.kavukcuoglu.org/).
-We also use the Qt <-> Lua interface from 
+We also use the Qt <-> Lua interface from
 [Leon Bottou](http://leon.bottou.org/).
 
 Installing Torch
@@ -25,7 +25,7 @@ Installing Torch
 For these tutorials, we assume that Torch is already installed, as well as extra
 packages (_image_, _nnx_, _unsup_). If you want to install Torch on your machine
 (which I recommend for the next sessions), follow the instructions available
-[here](http://www.torch.ch/manual/install/index). A more condensed version can 
+[here](http://torch.ch/docs/getting-started.html). A more condensed version can 
 also be found [here](http://code.cogbits.com/).
 
 Virtual Machine with Torch7 pre-installed
@@ -39,13 +39,13 @@ the best way to get started with Torch7.
 EC2 Machine: Pre-built Torch for the tutorials
 ----------------------------------------------
 
-For now, we have set up a server (Amazon EC2), which contains a pre-built version 
+For now, we have set up a server (Amazon EC2), which contains a pre-built version
 of Torch, and all the packages necessary to run the demos/tutorials provided.
 The IP number of the server will change periodically, so we'll just tell you
 what it is when you need it.
 
 We will provide you with an identity file `ipam_identity.pem` file, which you'll use
-to log into the EC2 machine. Once you've got the `ipam_identity.pem` file and the 
+to log into the EC2 machine. Once you've got the `ipam_identity.pem` file and the
 `ADDRESS` of the server, pick a unique `USERNAME`, for your use within the "student"
 account, and if you have a linux or OSX computer type:
 
@@ -88,7 +88,7 @@ t7> print 'something'
 something
 t7> = 'something'
 something
-t7> 
+t7>
 ```
 
 By default, the interpreter preloads the torch and plotting packages. Extra
@@ -125,7 +125,7 @@ t7> image.display{image=n.output, padding=2, zoom=0.25, legend='states'}
 
 ![](https://github.com/clementfarabet/ipam-tutorials/raw/master/th_tutorials/0_getstarted/img/states.png)
 
-Note: most functions in Torch support named arguments. In the example above, 
+Note: most functions in Torch support named arguments. In the example above,
 image.display can be called with arguments in order, or named. When using named
 arguments, notice that we replace the parenthesis by curly brackets. Curly
 brackets are used to describe Lua's most general data type: the table.
@@ -158,9 +158,9 @@ t7> dofile 'getstarted.lua'
 Getting help
 ------------
 
-Torch's documentation is work in progress, but you can already get help for most function 
+Torch's documentation is work in progress, but you can already get help for most function
 provided in the official packages (_torch_, _nn_, _gnuplot_, _image_). Documentation
-is installed on your machine, along with Torch's packages. The default location is 
+is installed on your machine, along with Torch's packages. The default location is
 [/usr/local/share/torch/html/index.html](file:///usr/local/share/torch/html/index.html). It
 is also mirrored online [here](http://www.torch.ch/manual), and can be triggered from
 your interpreter by doing:
@@ -188,10 +188,10 @@ t7> help(torch.randn)
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 [res] torch.randn( [res,] m [, n, k, ...])       
- y=torch.randn(n) returns a one-dimensional tensor of size n filled 
-with random numbers from a normal distribution with mean zero and variance 
+ y=torch.randn(n) returns a one-dimensional tensor of size n filled
+with random numbers from a normal distribution with mean zero and variance
 one.
- y=torch.randn(m,n) returns a mxn tensor of random numbers from a normal 
+ y=torch.randn(m,n) returns a mxn tensor of random numbers from a normal
 distribution with mean zero and variance one.
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ```
@@ -201,7 +201,7 @@ Going Further
 
 Now that you have all the basic pieces, I invite you to take a look at Torch's
 [basic tutorial/introduction](http://www.torch.ch/manual/tutorial/index). In
-particular, take a look at: 
+particular, take a look at:
 
   * a very quick [Lua primer](http://www.torch.ch/manual/tutorial/index#lua_basics),
   * a fast intro to [Torch types](http://www.torch.ch/manual/tutorial/index#torch_basicsplaying_with_tensors),
@@ -213,14 +213,14 @@ provide code for all sorts of things, including image processing, video processi
 graphical models (CRFs, ...), parallel computing, camera interfaces, ... A complete
 list of packages we support can be found [here](http://code.cogbits.com/packages/).
 Torch has a built-in package management system that makes it very easy for anyone
-to get and develop new packages, which can be shared easily, using, for example 
+to get and develop new packages, which can be shared easily, using, for example
 [GitHub](https://github.com/) as a distribution platform. More details about this
 [here](http://www.torch.ch/manual/install/index#the_torch_package_management_system).
 
 (Easy) Exercise
 ---------------
 
-Ok it's day 1, we just got started, but if we have enough time, let's try to anticipate 
+Ok it's day 1, we just got started, but if we have enough time, let's try to anticipate
 what we'll have to do in the next days, with a simple exercise.
 
 In any machine learning task, data plays a central role. The most basic thing to
@@ -243,7 +243,7 @@ t7> = train
 {[data]   = ByteTensor - size: 60000x1x32x32
  [labels] = ByteTensor - size: 60000}
 ```
-	
+
 Data needs to be normalized. Verify the initial data range, and
 write the necessary code to insure that the data has zero mean and
 unit norm. Depending on the task, you might want to normalize the
@@ -255,5 +255,5 @@ efficient numeric routines (ala Matlab). If you can't figure out how
 to do it, check out this script: `../1_supervised/A_slicing.lua`.
 
 Last little challenge, try to display a subset of the training
-images. By now you should have seen enough stuff to be able to 
+images. By now you should have seen enough stuff to be able to
 do that.
